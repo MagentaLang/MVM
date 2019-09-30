@@ -15,9 +15,21 @@ int main(int argc, char *argv[]) {
 			return -1;
 		}
 
-		int c;
-		while ((c = fgetc(f)) != EOF) {
-			printf("%x ", c);
+		// get file size
+		fseek(f, 0, SEEK_END);
+		int size = ftell(f) + 1;
+		fseek(f, 0, SEEK_SET);
+		// create program stack
+		int counter = 0;
+		char pstack[size];
+		if (fgets(pstack, size, f) == NULL) {
+			err("fatal: error reading file");
+			return -1;
+		}
+		// print program stack
+		while (counter < size) {
+			printf("%x ", pstack[counter]);
+			counter++;
 		}
 		printf("\n");
 
