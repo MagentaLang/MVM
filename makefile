@@ -6,9 +6,9 @@ build:
 	@echo "==> building"
 	$(CC) $(CFLAGS) main.c -o .bin/mvm
 
-test: mvm
+test: build
 	@echo "==> no tests specified"
 
-run: mvm
+run: build
 	@echo "==> running"
 	@./.bin/mvm
