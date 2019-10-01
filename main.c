@@ -30,7 +30,7 @@ int main(int argc, char *argv[]) {
 		// create stacks
 		char pstack[size];
 		char mstack[1024];
-		stack *sstack = newStack(1024);
+		stack *sstack = initstack(1024);
 		// create program stack
 		int counter = 0;
 		if (fgets(pstack, size, f) == NULL) {
@@ -66,7 +66,7 @@ int main(int argc, char *argv[]) {
 					} break;
 
 					default: {
-						push(sstack, c);
+						stack_push(sstack, c);
 					}
 				} break;
 			}

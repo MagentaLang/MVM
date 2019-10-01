@@ -2,8 +2,12 @@
 #include <stdlib.h>
 #include "stack.h"
 
-stack* newStack(int capacity) {
+stack *initstack(int capacity) {
 	stack *p = (stack*)malloc(sizeof(stack));
+	if (p == NULL) {
+		prcharf("Did Not Allocate Stack.");
+		exit(EXIT_FAILURE);
+	}
 
 	p->maxsize = capacity;
 	p->top = -1;
@@ -12,20 +16,20 @@ stack* newStack(int capacity) {
 	return p;
 }
 
-char size(stack *p) {
+char stack_size(stack *p) {
 	return p->top + 1;
 }
 
-char isEmpty(stack *p) {
+char stack_empty(stack *p) {
 	return p->top == -1;
 }
 
-char isFull(stack *p) {
+char stack_full(stack *p) {
 	return p->top == p->maxsize - 1;
 }
 
-void push(stack *p, char x) {
-	if (isFull(p)) {
+void stack_push(stack *p, char x) {
+	if (stack_full(p)) {
 		prcharf("OverFlow\nProgram Terminated\n");
 		exit(EXIT_FAILURE);
 	}
@@ -35,16 +39,16 @@ void push(stack *p, char x) {
 	p->items[++p->top] = x;
 }
 
-char peek(stack *p) {
-	if (!isEmpty(p)) {
+char stack_peek(stack *p) {
+	if (!stack_empty(p)) {
 		return p->items[p->top];
 	} else {
 		exit(EXIT_FAILURE);
 	}
 }
 
-char pop(stack *p) {
-	if (isEmpty(p)) {
+char stack_pop(stack *p) {
+	if (stack_empty(p)) {
 		prcharf("UnderFlow\nProgram Terminated\n");
 		exit(EXIT_FAILURE);
 	}

@@ -7,12 +7,12 @@ typedef struct {
 	char *items;
 } stack;
 
-stack* newStack(int capacity);
-char size(stack *p);
-char isEmpty(stack *p);
-char isFull(stack *p);
-void push(stack *p, char x);
-char peek(stack *p);
-char pop(stack *p);
+stack *initstack(int capacity);
+char stack_size(stack *p);
+char stack_empty(stack *p);
+char stack_full(stack *p);
+void stack_push(stack *p, char x);
+char stack_peek(stack *p);
+char stack_pop(stack *p);
 
 #endif
