@@ -47,10 +47,14 @@ int main(int argc, char *argv[]) {
 				case normal: switch (c) {
 					case 0x0: {
 						mode = opush;
+						stack_push(sstack, 0);
 					} break;
 
 					case 0x3: {
-						printf("hi");
+						while (stack_peek(sstack) != 0) {
+							printf("%c", stack_pop(sstack));
+						}
+						printf("\n");
 					} break;
 
 					default: {
@@ -73,7 +77,6 @@ int main(int argc, char *argv[]) {
 
 			counter++;
 		}
-		printf("\n");
 
 		fclose(f);
 	}
