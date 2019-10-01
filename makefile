@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS=-I.
+CFLAGS=-Isrc
 
 build:
 	@[ -d ".bin" ] || mkdir .bin
@@ -7,7 +7,8 @@ build:
 	$(CC) $(CFLAGS) main.c -o .bin/mvm
 
 test: build
-	@echo "==> no tests specified"
+	@echo "==> running test"
+	@./.bin/mvm test.magenta
 
 run: build
 	@echo "==> running"
