@@ -4,7 +4,7 @@ CFLAGS=-Isrc
 build:
 	@[ -d ".bin" ] || mkdir .bin
 	@echo "==> building"
-	$(CC) $(CFLAGS) main.c -o .bin/mvm
+	$(CC) $(CFLAGS) src/stack.c main.c -o .bin/mvm
 
 test: build
 	@echo "==> running test"

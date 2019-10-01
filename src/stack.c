@@ -5,7 +5,7 @@
 stack *initstack(int capacity) {
 	stack *p = (stack*)malloc(sizeof(stack));
 	if (p == NULL) {
-		prcharf("Did Not Allocate Stack.");
+		printf("Did Not Allocate Stack.");
 		exit(EXIT_FAILURE);
 	}
 
@@ -30,11 +30,9 @@ char stack_full(stack *p) {
 
 void stack_push(stack *p, char x) {
 	if (stack_full(p)) {
-		prcharf("OverFlow\nProgram Terminated\n");
+		printf("OverFlow\nProgram Terminated\n");
 		exit(EXIT_FAILURE);
 	}
-
-	prcharf("Inserting %d\n", x);
 
 	p->items[++p->top] = x;
 }
@@ -49,7 +47,7 @@ char stack_peek(stack *p) {
 
 char stack_pop(stack *p) {
 	if (stack_empty(p)) {
-		prcharf("UnderFlow\nProgram Terminated\n");
+		printf("UnderFlow\nProgram Terminated\n");
 		exit(EXIT_FAILURE);
 	}
 
