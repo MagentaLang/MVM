@@ -1,10 +1,12 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 #include "stack.h"
 
 void info(char text[]) { printf("\033[32;1m→ \033[m %s\n", text); }
 void warn(char text[]) { printf("\033[33;1m→ \033[m %s\n", text); }
 void err(char text[]) { printf("\033[31;1m→ \033[m %s\n", text); }
+void strrev(char *str);
 
 enum mode {
 	normal,
@@ -50,11 +52,14 @@ int main(int argc, char *argv[]) {
 						stack_push(sstack, 0);
 					} break;
 
-					case 0x3: {
-						while (stack_peek(sstack) != 0) {
-							printf("%c", stack_pop(sstack));
-						}
-						printf("\n");
+					case 0x2: {
+						char str[1024];
+
+						for (int i = 1; stack_peek(sstack) != 0; i++)
+							str[i] = stack_pop(sstack);
+
+						strrev(str);
+						printf("%s\n", str);
 					} break;
 
 					default: {
@@ -82,4 +87,19 @@ int main(int argc, char *argv[]) {
 	}
 
 	return 0;
+}
+
+void strrev(char *str) {
+	char *start = str;
+	char *end = start + strlen(str) - 1;
+	char temp;
+
+	while (end > start) {
+		temp = *start;
+		*start = *end;
+		*end = temp;
+
+		++start;
+		--end;
+	}
 }
