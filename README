@@ -1,0 +1,30 @@
+MVM, magenta virtual machine
+
+bytecode interpreter for magenta
+
+0x |          |
+---|----------|----------------------------------------------------------------
+00 | push     | add to top of stack
+01 | pop      | remove from top ofstack
+02 | log      | read backwards from top of stack until null is reached, then p-
+   |          | rint output
+03 | clear    | remove all items from stack
+---|----------|----------------------------------------------------------------
+04 | mem set  | set address of memory
+05 | mem add  | expand/allocate memory
+06 | mem sub  | shrink/deallocate memory
+07 | mem get  | get value at address and push to stack
+---|----------|----------------------------------------------------------------
+08 | add      | add two values and push answer to stack
+09 | subtract | subtract two values from eachother and push answer to stack
+0a | multiply | multiply two values and push answer to stack
+0b | divide   | divide two values from eachother and push answer to stack
+---|----------|----------------------------------------------------------------
+0c | less     | if v0 is not less than v1 jump to v2
+0d | less/eql | if v0 is not less than or equal to v1 jump to v2
+0e | greater  | if v0 is not greater than v1 jump to v2
+0f | grt/eql  | if v0 is not greater than or equal to v1 jump to v2
+10 | equal    | if v0 is equal to v1 jump to v2
+11 | jump     | jump to v0
+---|----------|----------------------------------------------------------------
+0x |          |
