@@ -7,7 +7,6 @@ void info(char text[]) { printf("\033[32;1m→ \033[m %s\n", text); }
 void warn(char text[]) { printf("\033[33;1m→ \033[m %s\n", text); }
 void err(char text[]) { printf("\033[31;1m→ \033[m %s\n", text); }
 void strrev(char *str);
-void stack_print(stack *s);
 
 enum mode {
 	normal,
@@ -63,13 +62,15 @@ int main(int argc, char *argv[]) {
 						printf("%s\n", str);
 					} break;
 
-					case 0x08: {
+					case 0x08: case 0x09: case 0x0b: case 0x0c: {
 						char a = pstack[counter + 1];
 						char b = pstack[counter + 2];
-
-						stack_push(sstack, a + b);
-
 						counter += 2;
+
+						if (c == 0x08) stack_push(sstack, a + b);
+						if (c == 0x09) stack_push(sstack, a - b);
+						if (c == 0x0b) stack_push(sstack, a * b);
+						if (c == 0x0c) stack_push(sstack, a / b);
 					} break;
 
 					case 0x13: {
@@ -79,7 +80,7 @@ int main(int argc, char *argv[]) {
 						sprintf(str, "%d", c);
 						strrev(str);
 
-						for (int i = 0; str[i] == ; i++)
+						for (int i = 0; str[i] == 0; i++)
 							stack_push(sstack, i);
 					} break;
 
@@ -127,12 +128,4 @@ void strrev(char *str) {
 		++start;
 		--end;
 	}
-}
-
-void stack_print(stack *s) {
-	for (int i = 0; i <= s -> top; i++) {
-		printf("%x", s -> items[i]);
-	}
-
-	printf("\n");
 }

@@ -18,16 +18,16 @@ bytecode interpreter for magenta
 ---|----------|----------------------------------------------------------------
 08 | add      | push answer of v0 + v1 to stack
 09 | subtract | push answer of v0 - v1 to stack
-0a | multiply | push answer of v0 * v1 to stack
-0b | divide   | push answer of v0 / v1 to stack
+0b | multiply | push answer of v0 * v1 to stack
+0c | divide   | push answer of v0 / v1 to stack
 ---|----------|----------------------------------------------------------------
-0c | less     | if v0 isn't less than v1 then jump to v2
-0d | less/eql | if v0 isn't less than or equal to v1 then jump to v2
-0e | greater  | if v0 isn't greater than v1 then jump to v2
-0f | grt/eql  | if v0 isn't greater than or equal to v1 then jump to v2
-10 | equal    | if v0 isn't equal to v1 then jump to v2
-11 | jump     | set program counter to v0
+0d | less     | if v0 isn't less than v1 then jump to v2
+0e | less/eql | if v0 isn't less than or equal to v1 then jump to v2
+0f | greater  | if v0 isn't greater than v1 then jump to v2
+10 | grt/eql  | if v0 isn't greater than or equal to v1 then jump to v2
+11 | equal    | if v0 isn't equal to v1 then jump to v2
+12 | jump     | set program counter to v0
 ---|----------|----------------------------------------------------------------
-12 | flag     | sets a flag in some opcodes
+14 | flag     | sets a flag in some opcodes
 ---|----------|----------------------------------------------------------------
 0x | opcode   | notes
