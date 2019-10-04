@@ -4,11 +4,12 @@ bytecode interpreter for magenta
 
 0x | opcode   | notes
 ---|----------|----------------------------------------------------------------
-00 | push     | push values to stack until null byte is reached
+00 | push     | push values to stack until null byte is reached, 0x1A == 0x00
 01 | pop      | remove one value from top of stack
 02 | log      | read backwards from top of stack until null is reached, then p-
-   |          | rint output
+   |          | rint output, if flag print raw data
 03 | clear    | remove all items from stack
+13 | convert  | convert raw data to ascii char
 ---|----------|----------------------------------------------------------------
 04 | mem set  | set memory address v0 to v1
 05 | mem add  | expand/allocate memory by v0 bytes
@@ -26,5 +27,7 @@ bytecode interpreter for magenta
 0f | grt/eql  | if v0 isn't greater than or equal to v1 then jump to v2
 10 | equal    | if v0 isn't equal to v1 then jump to v2
 11 | jump     | set program counter to v0
+---|----------|----------------------------------------------------------------
+12 | flag     | sets a flag in some opcodes
 ---|----------|----------------------------------------------------------------
 0x | opcode   | notes
