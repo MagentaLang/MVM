@@ -4,11 +4,12 @@ bytecode interpreter for magenta
 
 0x | opcode   | notes
 ---|----------|----------------------------------------------------------------
-00 | push     | push values to stack until null byte is reached
+00 | push     | push values to stack until null byte is reached, 0x1A == 0x00
 01 | pop      | remove one value from top of stack
 02 | log      | read backwards from top of stack until null is reached, then p-
-   |          | rint output
+   |          | rint output, if flag print raw data
 03 | clear    | remove all items from stack
+13 | convert  | convert raw data to ascii char
 ---|----------|----------------------------------------------------------------
 04 | mem set  | set memory address v0 to v1
 05 | mem add  | expand/allocate memory by v0 bytes
@@ -17,14 +18,16 @@ bytecode interpreter for magenta
 ---|----------|----------------------------------------------------------------
 08 | add      | push answer of v0 + v1 to stack
 09 | subtract | push answer of v0 - v1 to stack
-0a | multiply | push answer of v0 * v1 to stack
-0b | divide   | push answer of v0 / v1 to stack
+0b | multiply | push answer of v0 * v1 to stack
+0c | divide   | push answer of v0 / v1 to stack
 ---|----------|----------------------------------------------------------------
-0c | less     | if v0 isn't less than v1 then jump to v2
-0d | less/eql | if v0 isn't less than or equal to v1 then jump to v2
-0e | greater  | if v0 isn't greater than v1 then jump to v2
-0f | grt/eql  | if v0 isn't greater than or equal to v1 then jump to v2
-10 | equal    | if v0 isn't equal to v1 then jump to v2
-11 | jump     | set program counter to v0
+0d | less     | if v0 isn't less than v1 then jump to v2
+0e | less/eql | if v0 isn't less than or equal to v1 then jump to v2
+0f | greater  | if v0 isn't greater than v1 then jump to v2
+10 | grt/eql  | if v0 isn't greater than or equal to v1 then jump to v2
+11 | equal    | if v0 isn't equal to v1 then jump to v2
+12 | jump     | set program counter to v0
+---|----------|----------------------------------------------------------------
+14 | flag     | sets a flag in some opcodes
 ---|----------|----------------------------------------------------------------
 0x | opcode   | notes

@@ -47,12 +47,12 @@ int main(int argc, char *argv[]) {
 
 			switch (mode) {
 				case normal: switch (c) {
-					case 0x0: {
+					case 0x00: {
 						mode = opush;
 						stack_push(sstack, 0);
 					} break;
 
-					case 0x2: {
+					case 0x02: {
 						char str[1024];
 
 						for (int i = 1; stack_peek(sstack) != 0; i++)
@@ -60,6 +60,28 @@ int main(int argc, char *argv[]) {
 
 						strrev(str);
 						printf("%s\n", str);
+					} break;
+
+					case 0x08: case 0x09: case 0x0b: case 0x0c: {
+						char a = pstack[counter + 1];
+						char b = pstack[counter + 2];
+						counter += 2;
+
+						if (c == 0x08) stack_push(sstack, a + b);
+						if (c == 0x09) stack_push(sstack, a - b);
+						if (c == 0x0b) stack_push(sstack, a * b);
+						if (c == 0x0c) stack_push(sstack, a / b);
+					} break;
+
+					case 0x13: {
+						char c = stack_pop(sstack);
+						char str[4];
+
+						sprintf(str, "%d", c);
+						strrev(str);
+
+						for (int i = 0; str[i] == 0; i++)
+							stack_push(sstack, i);
 					} break;
 
 					default: {
@@ -70,8 +92,12 @@ int main(int argc, char *argv[]) {
 				} break;
 
 				case opush: switch (c) {
-					case 0x0: {
+					case 0x00: {
 						mode = normal;
+					} break;
+
+					case 0x1A: {
+						stack_push(sstack, 0);
 					} break;
 
 					default: {
