@@ -16,7 +16,7 @@ enum mode {
 int main(int argc, char *argv[]) {
 	if (argc <= 1) {
 	} else {
-		FILE *f = fopen(argv[1], "r");
+		FILE *f = fopen(argv[1], "rb");
 
 		if (f == NULL) {
 			err("fatal: error opening file");
@@ -25,25 +25,32 @@ int main(int argc, char *argv[]) {
 
 		// get file size
 		fseek(f, 0, SEEK_END);
-		int size = ftell(f) + 1;
-		printf("size: %d\n", size);
+		int size = ftell(f);
 		fseek(f, 0, SEEK_SET);
 
 		// create stacks
-		char pstack[size];
-		char mstack[1024];
-		stack *sstack = initstack(1024);
+		char bytecode[size]; // bytecode
+		char mstack[1024]; // memory
+		stack *sstack = initstack(1024); // stack
 		// create program stack
 		int counter = 0;
-		if (fgets(pstack, size, f) == NULL) {
-			err("fatal: error reading file");
-			exit(EXIT_FAILURE);
+		size_t ret_code = fread(bytecode, sizeof(char), size, f);
+		if (ret_code == size) {
+			// good :)
+		} else {
+			if (feof(f)) {
+				err("fatal: unexpected end of file\n");
+				exit(EXIT_FAILURE);
+			} else if (ferror(f)) {
+				err("fatal: error reading file\n");
+				exit(EXIT_FAILURE);
+			}
 		}
 
 		// print program stack
 		enum mode mode = normal;
 		while (counter < size) {
-			char c = pstack[counter];
+			char c = bytecode[counter];
 
 			switch (mode) {
 				case normal: switch (c) {
@@ -52,13 +59,8 @@ int main(int argc, char *argv[]) {
 					} break;
 
 					case 0x02: {
-						char str[1024];
-
-						for (int i = 1; stack_peek(sstack) != 0; i++)
-							str[i] = stack_pop(sstack);
-
-						strrev(str);
-						printf("%s", str);
+						for (int i = 0; stack_peek(sstack) != 0x00; i++)
+							putchar(stack_pop(sstack));
 					} break;
 
 					case 0x08: case 0x09: case 0x0b: case 0x0c: {
@@ -78,8 +80,8 @@ int main(int argc, char *argv[]) {
 						sprintf(str, "%d", c);
 						strrev(str);
 
-						for (int i = 0; str[i] == 0; i++)
-							stack_push(sstack, i);
+						for (int i = 0; str[i] != 0x00; i++)
+							stack_push(sstack, str[i]);
 					} break;
 
 					default: {
@@ -90,10 +92,9 @@ int main(int argc, char *argv[]) {
 				} break;
 
 				case opush:
-					printf("%x\n", c);switch (c) {
+					switch (c) {
 					case 0x00: {
 						mode = normal;
-						stack_dump(sstack);
 					} break;
 
 					case 0x1A: {
