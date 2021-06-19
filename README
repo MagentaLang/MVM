@@ -41,7 +41,7 @@ instructions marked with ! are not currently implemented.
 !01 | push bytes | following program bytes will be pushed to stack
 !02 | pop to A   | pop byte(s) from stack to A register
 !03 | pop to B   | pop byte(s) from stack to A register
-!04 | convert    | convert raw bytes to ascii char and pushes result to stack
+!04 | convert    | convert last memory width to ascii number string.
 ----|------------|--------------------------------------------------------------
 !05 | point set  | sets memory pointer to A
 !06 | point read | get memory address under pointer
@@ -59,9 +59,9 @@ instructions marked with ! are not currently implemented.
 !10 | equal      | if A isn't equal to B then jump to s0
 !11 | jump       | set program counter to A
 ----|------------|--------------------------------------------------------------
-!12 | 1byte flag | set memory width to 8 bits
-!13 | 2byte flag | set memory width to 16 bits
-!14 | 4byte flag | set memory width to 32 bits
-!15 | 8byte flag | set memory width to 64 bits
+ 12 | 1byte flag | set memory width to 8 bits
+ 13 | 2byte flag | set memory width to 16 bits
+ 14 | 4byte flag | set memory width to 32 bits
+ 15 | 8byte flag | set memory width to 64 bits
 ----|------------|--------------------------------------------------------------
  0x | opcode     | notes
