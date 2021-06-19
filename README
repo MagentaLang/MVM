@@ -1,42 +1,67 @@
-# MVM, magenta virtual machine
+# MVM
 
-bytecode interpreter for magenta
+mvm, magenta virtual machine, is a bytecode interpreter for magenta
 
-magenta bytecode is stack based
+# memory and io
 
-# opcodes
+magenta bytecode is stack based. memory, to the program running inside the vm,
+seems like it is allocated in a long continuous stretch, in actuality it is not.
+
+special memory locations, linked to bytes not bits (0x00-07 == first 8 bytes)
+  0x01-08 -> stdout character (write to write on terminal, read last written ch)
+  0x09-10 -> stdin stack top (write anywhere in here to pop, readable)
+  0x11-14 -> stdin stack length (amount of characters left in stack, doesn't
+             accept any more input if stack length is 0xFFFFFFFF)
+
+# instructions/opcodes
 
 if you see sN, that means top element of stack - N, s0 is the top element, s1 is
 the second-to-top element, s2 is the third-to-top element, etc.
 
-codes marked with ! are not currently implemented
+by default, all instructions work with 1 byte (8 bits) at once, using flags you
+can set the memory width to 2 bytes (16 bit), 4 bytes (32 bit), 8 bytes (64 bit)
+, and revert to the default 1 byte/8 bit memory width. when a flag is set, it is
+kept until another flag is encountered.
 
- 0x | opcode   | notes
-----|----------|----------------------------------------------------------------
- 00 | push     | push values to stack until null byte is reached, 0x1A == 0x00
-!01 | pop      | remove one value from top of stack
- 02 | log      | read backwards from top of stack until a null byte is reached,
-    |          | then print output, if flag print raw bytes
-!03 | clear    | remove all items from stack
- 13 | convert  | convert raw bytes to ascii char and pushes result to stack
-----|----------|----------------------------------------------------------------
-!04 | mem set  | set memory address s0 to s1
-!05 | mem add  | expand/allocate memory by s0 bytes
-!06 | mem sub  | shrink/deallocate memory by s0 bytes
-!07 | mem get  | get memory address s0 and push to stack
-----|----------|----------------------------------------------------------------
- 08 | add      | push answer of s0 + s1 to stack
- 09 | subtract | push answer of s0 - s1 to stack
- 0b | multiply | push answer of s0 * s1 to stack
- 0c | divide   | push answer of s0 / s1 to stack
-----|----------|----------------------------------------------------------------
-!0d | less     | if s0 isn't less than s1 then jump to s2
-!0e | less/eql | if s0 isn't less than or equal to s1 then jump to s2
-!0f | greater  | if s0 isn't greater than s1 then jump to s2
-!10 | grt/eql  | if s0 isn't greater than or equal to s1 then jump to sv2
-!11 | equal    | if s0 isn't equal to s1 then jump to s2
-!12 | jump     | set program counter to s0
-----|----------|----------------------------------------------------------------
-!14 | flag     | sets a flag to enable alternate functionality in some ops
-----|----------|----------------------------------------------------------------
- 0x | opcode   | notes
+if the push instruction runs into consecutive null bytes equal to the memory
+width, then it will substitute them by pushing 0x00 to the stack and continuing
+to read. if memory width is 1 byte then it will substitute a 0xFF byte for null.
+
+add/subtract instructions will overflow if memory width is too small, you should
+consider using a memory width one above the width of the numbers you pushed to
+A and B if you would like to avoid integer overflows.
+
+memory deallocation is safe and does not let you wipe the first 64 bytes of mem.
+
+instructions marked with ! are not currently implemented.
+
+ 0x | opcode     | notes
+----|------------|--------------------------------------------------------------
+ 00 | push       | push values to stack until null byte is reached
+!01 | push bytes | following program bytes will be pushed to stack
+!02 | pop to A   | pop byte(s) from stack to A register
+!03 | pop to B   | pop byte(s) from stack to A register
+!04 | convert    | convert raw bytes to ascii char and pushes result to stack
+----|------------|--------------------------------------------------------------
+!05 | point set  | sets memory pointer to A
+!06 | point read | get memory address under pointer
+!07 | pntr write | write B to memory address under pointer
+!08 | malloc     | expand/allocate memory by A bytes
+!09 | demalloc   | shrink/deallocate memory by A bytes
+----|------------|--------------------------------------------------------------
+ 0A | add        | push answer of A + B to stack
+ 0B | subtract   | push answer of A - B to stack
+----|------------|--------------------------------------------------------------
+!0C | less       | if A isn't less than B then jump to s0
+!0D | less/eql   | if A isn't less than or equal to B then jump to s0
+!0E | greater    | if A isn't greater than B then jump to s0
+!0F | grt/eql    | if A isn't greater than or equal to B then jump to s0
+!10 | equal      | if A isn't equal to B then jump to s0
+!11 | jump       | set program counter to A
+----|------------|--------------------------------------------------------------
+ 12 | 1byte flag | set memory width to 8 bits
+ 13 | 2byte flag | set memory width to 16 bits
+ 14 | 4byte flag | set memory width to 32 bits
+ 15 | 8byte flag | set memory width to 64 bits
+----|------------|--------------------------------------------------------------
+ 0x | opcode     | notes
