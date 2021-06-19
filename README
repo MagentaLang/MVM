@@ -37,7 +37,7 @@ instructions marked with ! are not currently implemented.
 
  0x | opcode     | notes
 ----|------------|--------------------------------------------------------------
- 00 | push       | push values to stack until null byte is reached
+!00 | push       | push values to stack until null byte is reached
 !01 | push bytes | following program bytes will be pushed to stack
 !02 | pop to A   | pop byte(s) from stack to A register
 !03 | pop to B   | pop byte(s) from stack to A register
@@ -49,8 +49,8 @@ instructions marked with ! are not currently implemented.
 !08 | malloc     | expand/allocate memory by A bytes
 !09 | demalloc   | shrink/deallocate memory by A bytes
 ----|------------|--------------------------------------------------------------
- 0A | add        | push answer of A + B to stack
- 0B | subtract   | push answer of A - B to stack
+!0A | add        | push answer of A + B to stack
+!0B | subtract   | push answer of A - B to stack
 ----|------------|--------------------------------------------------------------
 !0C | less       | if A isn't less than B then jump to s0
 !0D | less/eql   | if A isn't less than or equal to B then jump to s0
@@ -59,9 +59,9 @@ instructions marked with ! are not currently implemented.
 !10 | equal      | if A isn't equal to B then jump to s0
 !11 | jump       | set program counter to A
 ----|------------|--------------------------------------------------------------
- 12 | 1byte flag | set memory width to 8 bits
- 13 | 2byte flag | set memory width to 16 bits
- 14 | 4byte flag | set memory width to 32 bits
- 15 | 8byte flag | set memory width to 64 bits
+!12 | 1byte flag | set memory width to 8 bits
+!13 | 2byte flag | set memory width to 16 bits
+!14 | 4byte flag | set memory width to 32 bits
+!15 | 8byte flag | set memory width to 64 bits
 ----|------------|--------------------------------------------------------------
  0x | opcode     | notes
