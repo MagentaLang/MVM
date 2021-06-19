@@ -1,33 +1,42 @@
-MVM, magenta virtual machine
+# MVM, magenta virtual machine
 
 bytecode interpreter for magenta
 
-0x | opcode   | notes
----|----------|----------------------------------------------------------------
-00 | push     | push values to stack until null byte is reached, 0x1A == 0x00
-01 | pop      | remove one value from top of stack
-02 | log      | read backwards from top of stack until null is reached, then p-
-   |          | rint output, if flag print raw data
-03 | clear    | remove all items from stack
-13 | convert  | convert raw data to ascii char
----|----------|----------------------------------------------------------------
-04 | mem set  | set memory address v0 to v1
-05 | mem add  | expand/allocate memory by v0 bytes
-06 | mem sub  | shrink/deallocate memory by v0 bytes
-07 | mem get  | get memory address v0 and push to stack
----|----------|----------------------------------------------------------------
-08 | add      | push answer of v0 + v1 to stack
-09 | subtract | push answer of v0 - v1 to stack
-0b | multiply | push answer of v0 * v1 to stack
-0c | divide   | push answer of v0 / v1 to stack
----|----------|----------------------------------------------------------------
-0d | less     | if v0 isn't less than v1 then jump to v2
-0e | less/eql | if v0 isn't less than or equal to v1 then jump to v2
-0f | greater  | if v0 isn't greater than v1 then jump to v2
-10 | grt/eql  | if v0 isn't greater than or equal to v1 then jump to v2
-11 | equal    | if v0 isn't equal to v1 then jump to v2
-12 | jump     | set program counter to v0
----|----------|----------------------------------------------------------------
-14 | flag     | sets a flag in some opcodes
----|----------|----------------------------------------------------------------
-0x | opcode   | notes
+magenta bytecode is stack based
+
+# opcodes
+
+if you see sN, that means top element of stack - N, s0 is the top element, s1 is
+the second-to-top element, s2 is the third-to-top element, etc.
+
+codes marked with ! are not currently implemented
+
+ 0x | opcode   | notes
+----|----------|----------------------------------------------------------------
+ 00 | push     | push values to stack until null byte is reached, 0x1A == 0x00
+!01 | pop      | remove one value from top of stack
+ 02 | log      | read backwards from top of stack until a null byte is reached,
+    |          | then print output, if flag print raw bytes
+!03 | clear    | remove all items from stack
+ 13 | convert  | convert raw bytes to ascii char and pushes result to stack
+----|----------|----------------------------------------------------------------
+!04 | mem set  | set memory address s0 to s1
+!05 | mem add  | expand/allocate memory by s0 bytes
+!06 | mem sub  | shrink/deallocate memory by s0 bytes
+!07 | mem get  | get memory address s0 and push to stack
+----|----------|----------------------------------------------------------------
+ 08 | add      | push answer of s0 + s1 to stack
+ 09 | subtract | push answer of s0 - s1 to stack
+ 0b | multiply | push answer of s0 * s1 to stack
+ 0c | divide   | push answer of s0 / s1 to stack
+----|----------|----------------------------------------------------------------
+!0d | less     | if s0 isn't less than s1 then jump to s2
+!0e | less/eql | if s0 isn't less than or equal to s1 then jump to s2
+!0f | greater  | if s0 isn't greater than s1 then jump to s2
+!10 | grt/eql  | if s0 isn't greater than or equal to s1 then jump to sv2
+!11 | equal    | if s0 isn't equal to s1 then jump to s2
+!12 | jump     | set program counter to s0
+----|----------|----------------------------------------------------------------
+!14 | flag     | sets a flag to enable alternate functionality in some ops
+----|----------|----------------------------------------------------------------
+ 0x | opcode   | notes

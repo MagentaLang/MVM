@@ -2,11 +2,11 @@
 #include <stdlib.h>
 #include <string.h>
 #include "stack.h"
+#include "util.h"
 
-void info(char text[]) { printf("\033[32;1m→ \033[m %s\n", text); }
-void warn(char text[]) { printf("\033[33;1m→ \033[m %s\n", text); }
-void err(char text[]) { printf("\033[31;1m→ \033[m %s\n", text); }
-void strrev(char *str);
+void usage() {
+	printf("usage: mvm file\n");
+}
 
 enum mode {
 	normal,
@@ -15,18 +15,18 @@ enum mode {
 
 int main(int argc, char *argv[]) {
 	if (argc <= 1) {
-		printf("usage: mvm file\n");
 	} else {
 		FILE *f = fopen(argv[1], "r");
 
 		if (f == NULL) {
 			err("fatal: error opening file");
-			return -1;
+			exit(EXIT_FAILURE);
 		}
 
 		// get file size
 		fseek(f, 0, SEEK_END);
 		int size = ftell(f) + 1;
+		printf("size: %d\n", size);
 		fseek(f, 0, SEEK_SET);
 
 		// create stacks
@@ -37,7 +37,7 @@ int main(int argc, char *argv[]) {
 		int counter = 0;
 		if (fgets(pstack, size, f) == NULL) {
 			err("fatal: error reading file");
-			return -1;
+			exit(EXIT_FAILURE);
 		}
 
 		// print program stack
@@ -49,7 +49,6 @@ int main(int argc, char *argv[]) {
 				case normal: switch (c) {
 					case 0x00: {
 						mode = opush;
-						stack_push(sstack, 0);
 					} break;
 
 					case 0x02: {
@@ -59,13 +58,12 @@ int main(int argc, char *argv[]) {
 							str[i] = stack_pop(sstack);
 
 						strrev(str);
-						printf("%s\n", str);
+						printf("%s", str);
 					} break;
 
 					case 0x08: case 0x09: case 0x0b: case 0x0c: {
-						char a = pstack[counter + 1];
-						char b = pstack[counter + 2];
-						counter += 2;
+						char a = stack_pop(sstack);
+						char b = stack_pop(sstack);
 
 						if (c == 0x08) stack_push(sstack, a + b);
 						if (c == 0x09) stack_push(sstack, a - b);
@@ -86,14 +84,16 @@ int main(int argc, char *argv[]) {
 
 					default: {
 						err("fatal: invalid opcode");
-						printf("          [%d] 0x%x <--\n", counter + 1, c);
-						return -1;
+						printf("\n          [%d] 0x%x <--\n", counter + 1, c);
+						exit(EXIT_FAILURE);
 					}
 				} break;
 
-				case opush: switch (c) {
+				case opush:
+					printf("%x\n", c);switch (c) {
 					case 0x00: {
 						mode = normal;
+						stack_dump(sstack);
 					} break;
 
 					case 0x1A: {
@@ -113,19 +113,4 @@ int main(int argc, char *argv[]) {
 	}
 
 	return 0;
-}
-
-void strrev(char *str) {
-	char *start = str;
-	char *end = start + strlen(str) - 1;
-	char temp;
-
-	while (end > start) {
-		temp = *start;
-		*start = *end;
-		*end = temp;
-
-		++start;
-		--end;
-	}
 }
