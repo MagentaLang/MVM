@@ -24,3 +24,8 @@ void strrev(char *str) {
 		--end;
 	}
 }
+
+// get nth byte of a bytes
+unsigned char nth_byte(int n, unsigned long long int bytes) {
+	return (unsigned char)((bytes >> (8 * n)) & 0xFF);
+}

@@ -25,18 +25,18 @@ int main(int argc, char *argv[]) {
 
 		// get file size
 		fseek(f, 0, SEEK_END);
-		int size = ftell(f);
+		unsigned size = ftell(f);
 		fseek(f, 0, SEEK_SET);
 
-		char mstack[256]; // memory
-		int mpointer = 0x01;
-		int registerA = 0x01;
-		int registerB = 0x01;
+		unsigned char mstack[256]; // memory
+		unsigned int mpointer = 0x01;
+		unsigned long long int registerA = 0x01;
+		unsigned long long int registerB = 0x01;
 		int width = 1; // byte width
 		stack *sstack = initstack(1024); // stack
 		// create program stack
 		int counter = 3;
-		char bytecode[size]; // bytecode
+		unsigned char bytecode[size]; // bytecode
 		size_t ret_code = fread(bytecode, sizeof(char), size, f);
 		if (ret_code == size) {
 			// good :)
@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 		// execute program
 		enum mode mode = normal;
 		while (counter < size) {
-			char c = bytecode[counter];
+			unsigned char c = bytecode[counter];
 
 			switch (mode) {
 				case normal: switch (c) {
@@ -101,8 +101,33 @@ int main(int argc, char *argv[]) {
 					} break;
 
 					case 0x0A: case 0x0B: {
-						if (c == 0x0A) stack_push(sstack, registerA + registerB);
-						if (c == 0x0B) stack_push(sstack, registerA - registerB);
+						// width is at least one
+						unsigned long long int a = nth_byte(0, registerA);
+						unsigned long long int b = nth_byte(0, registerB);
+
+						if (width == 1) {
+							stack_push(sstack, c == 0x0A ? (unsigned char)a + (unsigned char)b : (unsigned char)a - (unsigned char)b);
+							break;
+						}
+
+						// width is at least two
+						a = a | nth_byte(1, registerA) << 8;
+						b = b | nth_byte(1, registerB) << 8;
+
+						if (width == 2) {
+							unsigned short sum = c == 0x0A ? ((unsigned short)a + (unsigned short)b) : ((unsigned short)a - (unsigned short)b);
+							stack_push(sstack, nth_byte(1, sum));
+							stack_push(sstack, nth_byte(0, sum));
+							break;
+						}
+
+						if (width == 4) {
+
+						}
+
+						if (width == 8) {
+
+						}
 					} break;
 
 					case 0x12: width = 1; break;
@@ -118,19 +143,14 @@ int main(int argc, char *argv[]) {
 				} break;
 
 				case push:
-					switch ((int)c) {
-					case 0x00: {
+					if (c == 0x00) {
 						mode = normal;
-					} break;
-
-					case 0xffffffff: {
-						stack_push(sstack, 0);
-					} break;
-
-					default: {
+					} else if (c >= 0xFF) {
+						stack_push(sstack, 0x00);
+					} else {
 						stack_push(sstack, c);
 					}
-				} break;
+					break;
 			}
 
 			counter++;

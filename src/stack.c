@@ -14,13 +14,13 @@ stack *initstack(int capacity) {
 
 	p->maxsize = capacity;
 	p->top = -1;
-	p->items = (char*)malloc(sizeof(char) * capacity);
+	p->items = (unsigned char*)malloc(sizeof(unsigned char) * capacity);
 
 	return p;
 }
 
 // returns the current size of the stack
-char stack_size(stack *p) {
+int stack_size(stack *p) {
 	return p->top + 1;
 }
 
@@ -30,7 +30,7 @@ char stack_full(stack *p) {
 }
 
 // pushes an element to top of stack
-void stack_push(stack *p, char x) {
+void stack_push(stack *p, unsigned char x) {
 	if (stack_full(p)) {
 		err("OverFlow\nProgram Terminated\n");
 		exit(EXIT_FAILURE);
@@ -45,7 +45,7 @@ char stack_empty(stack *p) {
 }
 
 // removes the top element from the stack and returns it
-char stack_pop(stack *p) {
+unsigned char stack_pop(stack *p) {
 	if (stack_empty(p)) {
 		err("Stack UnderFlow\nProgram Terminated\n");
 		exit(EXIT_FAILURE);
@@ -61,13 +61,13 @@ void stack_pop_width(stack *p, int width, unsigned long long int *bytes) {
 		if (i == 0) {
 			*bytes = (unsigned long long int)byte;
 		} else if (i != 0) {
-			*bytes = *bytes << 8 | byte;
+			*bytes = *bytes | byte << 8;
 		}
 	}
 }
 
 // returns the top element from the stack and returns it
-char stack_peek(stack *p) {
+unsigned char stack_peek(stack *p) {
 	if (!stack_empty(p)) {
 		return p->items[p->top];
 	} else {
