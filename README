@@ -82,11 +82,11 @@ instructions marked with ! are not currently implemented.
 
  0x | opcode     | notes
 ----|------------|--------------------------------------------------------------
-!00 | push       | push values to stack until null byte is reached
-!01 | push bytes | following program bytes will be pushed to stack
-!02 | pop to A   | pop byte(s) from stack to A register
-!03 | pop to B   | pop byte(s) from stack to A register
-!04 | convert #  | convert last memory width to ascii number string.
+ 00 | push       | push values to stack until null byte is reached
+ 01 | push bytes | following program bytes will be pushed to stack
+ 02 | pop to A   | pop byte(s) from stack to A register
+ 03 | pop to B   | pop byte(s) from stack to A register
+ 04 | convert #  | convert last memory width to ascii number string
 ----|------------|--------------------------------------------------------------
 !05 | pointr set | sets memory pointer location to A
 !06 | pointr loc | push memory pointer location to stack
@@ -94,8 +94,8 @@ instructions marked with ! are not currently implemented.
 !08 | pntr write | pop byte from stack and write it to mem address under pointer
 !09 | pntr write | write B to memory address under pointer
 ----|------------|--------------------------------------------------------------
-!0A | add        | push answer of A + B to stack
-!0B | subtract   | push answer of A - B to stack
+ 0A | add        | push answer of A + B to stack
+ 0B | subtract   | push answer of A - B to stack
 ----|------------|--------------------------------------------------------------
 !0C | less       | if A isn't less than B then jump to s0
 !0D | less/eql   | if A isn't less than or equal to B then jump to s0
@@ -108,5 +108,8 @@ instructions marked with ! are not currently implemented.
  13 | 2byte flag | set memory width to 16 bits
  14 | 4byte flag | set memory width to 32 bits
  15 | 8byte flag | set memory width to 64 bits
+----|------------|--------------------------------------------------------------
+ 16 | debug      | logs contents of stack until null byte is reached
+ 1F | no op      |
 ----|------------|--------------------------------------------------------------
  0x | opcode     | notes

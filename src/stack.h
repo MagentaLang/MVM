@@ -14,6 +14,7 @@ char stack_full(stack *p);
 void stack_push(stack *p, char x);
 char stack_peek(stack *p);
 char stack_pop(stack *p);
+void stack_pop_width(stack *p, int width, unsigned long long int *bytes);
 void stack_dump(stack *p);
 
 #endif

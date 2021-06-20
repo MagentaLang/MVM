@@ -54,6 +54,18 @@ char stack_pop(stack *p) {
 	return p->items[p->top--];
 }
 
+// pops a bytewidth off of stack and outputs to *bytes
+void stack_pop_width(stack *p, int width, unsigned long long int *bytes) {
+	for (int i = 0; i < width; i++) {
+		int byte = stack_pop(p);
+		if (i == 0) {
+			*bytes = (unsigned long long int)byte;
+		} else if (i != 0) {
+			*bytes = *bytes << 8 | byte;
+		}
+	}
+}
+
 // returns the top element from the stack and returns it
 char stack_peek(stack *p) {
 	if (!stack_empty(p)) {

@@ -29,10 +29,13 @@ int main(int argc, char *argv[]) {
 		fseek(f, 0, SEEK_SET);
 
 		char mstack[256]; // memory
+		int mpointer = 0x01;
+		int registerA = 0x01;
+		int registerB = 0x01;
 		int width = 1; // byte width
 		stack *sstack = initstack(1024); // stack
 		// create program stack
-		int counter = 0;
+		int counter = 3;
 		char bytecode[size]; // bytecode
 		size_t ret_code = fread(bytecode, sizeof(char), size, f);
 		if (ret_code == size) {
@@ -47,6 +50,11 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
+		if (bytecode[0] != 'M' || bytecode[1] != 'V' || bytecode[2] != 'M') {
+			err("fatal: file is not magenta bytecode\n");
+			exit(EXIT_FAILURE);
+		}
+
 		// execute program
 		enum mode mode = normal;
 		while (counter < size) {
@@ -54,20 +62,38 @@ int main(int argc, char *argv[]) {
 
 			switch (mode) {
 				case normal: switch (c) {
+					case 0x1F: break; // noop
+
 					case 0x00: {
 						mode = push;
 					} break;
 
 					case 0x01: {
+						for (int i = 0; i < width; i++)
+							stack_push(sstack, bytecode[counter + i + 1]);
+
+						counter += width;
+					} break;
+
+					case 0x02: case 0x03: {
+						unsigned long long int bytes = 0x00;
+						stack_pop_width(sstack, width, &bytes);
+
+						if (c == 0x02) registerA = bytes;
+						if (c == 0x03) registerB = bytes;
+					} break;
+
+					case 0x16: { // debugging log command
 						for (int i = 0; stack_peek(sstack) != 0x00; i++)
 							putchar(stack_pop(sstack));
 					} break;
 
 					case 0x04: {
-						char c = stack_pop(sstack);
-						char str[4];
+						unsigned long long int byte;
+						stack_pop_width(sstack, width, &byte);
+						char str[11];
 
-						sprintf(str, "%d", c);
+						sprintf(str, "%llu", byte);
 						strrev(str);
 
 						for (int i = 0; str[i] != 0x00; i++)
@@ -75,11 +101,8 @@ int main(int argc, char *argv[]) {
 					} break;
 
 					case 0x0A: case 0x0B: {
-						char a = stack_pop(sstack);
-						char b = stack_pop(sstack);
-
-						if (c == 0x08) stack_push(sstack, a + b);
-						if (c == 0x09) stack_push(sstack, a - b);
+						if (c == 0x0A) stack_push(sstack, registerA + registerB);
+						if (c == 0x0B) stack_push(sstack, registerA - registerB);
 					} break;
 
 					case 0x12: width = 1; break;
@@ -95,14 +118,12 @@ int main(int argc, char *argv[]) {
 				} break;
 
 				case push:
-					switch (c) {
+					switch ((int)c) {
 					case 0x00: {
-						// TODO: check for consecutive null bytes the length of
-						// memory width
 						mode = normal;
 					} break;
 
-					case 0xFF: {
+					case 0xffffffff: {
 						stack_push(sstack, 0);
 					} break;
 
