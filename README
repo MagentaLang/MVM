@@ -91,7 +91,7 @@ instructions marked with ! are not currently implemented.
  00 | push       | push values to stack until null byte is reached
  01 | push bytes | following program bytes will be pushed to stack
  02 | pop to A   | pop byte(s) from stack to A register
- 03 | pop to B   | pop byte(s) from stack to A register
+ 03 | pop to B   | pop byte(s) from stack to B register
  04 | convert #  | convert last memory width to ascii number string
 ----|------------|--------------------------------------------------------------
 !05 | pointr set | sets memory pointer location to A

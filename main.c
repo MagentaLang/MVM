@@ -100,6 +100,8 @@ int main(int argc, char *argv[]) {
 					case 0x16: { // debugging log command
 						for (int i = 0; stack_peek(sstack) != 0x00; i++)
 							putchar(stack_pop(sstack));
+
+						stack_pop(sstack);
 					} break;
 
 					case 0x04: {
