@@ -2,10 +2,6 @@
 
 mvm, magenta virtual machine, is a bytecode interpreter for magenta
 
-# special types
-
-if the push instruction runs into 0xFF it will substitute it for a null byte.
-
 # memory and io
 
 magenta bytecode is stack based. memory, to the program running inside the vm,
@@ -65,7 +61,6 @@ file [device] [device id "FILEM:.."]
     in files (behavior for read only/actively written to read only files is not
     specified) if the file is in Mod mode,
 
-
 # instructions/opcodes
 
 if you see sN, that means top element of stack - N, s0 is the top element, s1 is
@@ -77,11 +72,11 @@ can set the memory width to 2 bytes (16 bit), 4 bytes (32 bit), 8 bytes (64 bit)
 , and revert to the default 1 byte/8 bit memory width. when a flag is set, it is
 kept until another flag is encountered.
 
+if the push instruction runs into 0xFF it will substitute it for a null byte.
+
 add/subtract instructions will overflow if memory width is too small, you should
 consider using a memory width one above the width of the numbers you pushed to
 A and B if you would like to avoid integer overflows.
-
-memory deallocation is safe and does not let you wipe the first 64 bytes of mem.
 
 instructions marked with ! are not currently implemented.
 
