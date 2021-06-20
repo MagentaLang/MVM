@@ -3,10 +3,10 @@
 mvm, magenta virtual machine, is a bytecode interpreter for magenta
 
 code is written assuming the following type sizes:
-(u)char -> 8 bits
-(u)short -> 16 bits
-(u)lint -> 32 bits
-(u)llint -> 64 bits
+(u)char  ==  8 bits
+(u)short == 16 bits
+(u)int   == 32 bits
+(u)long  == 64 bits
 
 # memory and io
 
@@ -101,7 +101,7 @@ instructions marked with ! are not currently implemented.
 !09 | pntr write | write B to memory address under pointer
 ----|------------|--------------------------------------------------------------
  0A | add        | push answer of A + B to stack
-!0B | subtract   | push answer of A - B to stack
+ 0B | subtract   | push answer of A - B to stack
 ----|------------|--------------------------------------------------------------
 !0C | less       | if A isn't less than B then jump to s0
 !0D | less/eql   | if A isn't less than or equal to B then jump to s0

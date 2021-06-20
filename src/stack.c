@@ -55,13 +55,13 @@ unsigned char stack_pop(stack *p) {
 }
 
 // pops a bytewidth off of stack and outputs to *bytes
-void stack_pop_width(stack *p, int width, unsigned long long int *bytes) {
+void stack_pop_width(stack *p, int width, unsigned long *bytes) {
 	for (int i = 0; i < width; i++) {
-		int byte = stack_pop(p);
+		unsigned long byte = stack_pop(p);
 		if (i == 0) {
-			*bytes = (unsigned long long int)byte;
+			*bytes = (unsigned long)byte;
 		} else if (i != 0) {
-			*bytes = *bytes | byte << 8;
+			*bytes = *bytes | byte << (8 * i);
 		}
 	}
 }

@@ -1,3 +1,10 @@
+#ifndef EXIT_SUCCESS
+#define EXIT_SUCCESS 0
+#endif
+#ifndef EXIT_FAILURE
+#define EXIT_FAILURE 1
+#endif
+
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
@@ -5,7 +12,8 @@
 #include "util.h"
 
 void usage() {
-	printf("usage: mvm file\n");
+	printf("usage: mvm [-h] file\n");
+	printf("\t-h --help\tprints usage information\n");
 }
 
 enum mode {
@@ -15,7 +23,13 @@ enum mode {
 
 int main(int argc, char *argv[]) {
 	if (argc <= 1) {
+		usage();
 	} else {
+		if (argv[1] == "-h" || argv[1] == "--help") {
+			usage();
+			exit(EXIT_SUCCESS);
+		}
+
 		FILE *f = fopen(argv[1], "rb");
 
 		if (f == NULL) {
@@ -30,8 +44,8 @@ int main(int argc, char *argv[]) {
 
 		unsigned char mstack[256]; // memory
 		unsigned int mpointer = 0x01;
-		unsigned long long int registerA = 0x01;
-		unsigned long long int registerB = 0x01;
+		unsigned long registerA = 0x01;
+		unsigned long registerB = 0x01;
 		int width = 1; // byte width
 		stack *sstack = initstack(1024); // stack
 		// create program stack
@@ -76,7 +90,7 @@ int main(int argc, char *argv[]) {
 					} break;
 
 					case 0x02: case 0x03: {
-						unsigned long long int bytes = 0x00;
+						unsigned long bytes = 0x00;
 						stack_pop_width(sstack, width, &bytes);
 
 						if (c == 0x02) registerA = bytes;
@@ -89,11 +103,11 @@ int main(int argc, char *argv[]) {
 					} break;
 
 					case 0x04: {
-						unsigned long long int byte;
+						unsigned long byte;
 						stack_pop_width(sstack, width, &byte);
-						char str[11];
+						char str[20];
 
-						sprintf(str, "%llu", byte);
+						sprintf(str, "%lu", byte);
 						strrev(str);
 
 						for (int i = 0; str[i] != 0x00; i++)
@@ -102,8 +116,8 @@ int main(int argc, char *argv[]) {
 
 					case 0x0A: case 0x0B: {
 						// width is at least one
-						unsigned long long int a = nth_byte(0, registerA);
-						unsigned long long int b = nth_byte(0, registerB);
+						unsigned long a = nth_byte(0, registerA);
+						unsigned long b = nth_byte(0, registerB);
 
 						if (width == 1) {
 							stack_push(sstack, c == 0x0A ? (unsigned char)a + (unsigned char)b : (unsigned char)a - (unsigned char)b);
@@ -115,18 +129,40 @@ int main(int argc, char *argv[]) {
 						b = b | nth_byte(1, registerB) << 8;
 
 						if (width == 2) {
-							unsigned short sum = c == 0x0A ? ((unsigned short)a + (unsigned short)b) : ((unsigned short)a - (unsigned short)b);
+							unsigned short sum = c == 0x0A ? (unsigned short)a + (unsigned short)b : (unsigned short)a - (unsigned short)b;
 							stack_push(sstack, nth_byte(1, sum));
 							stack_push(sstack, nth_byte(0, sum));
 							break;
 						}
 
-						if (width == 4) {
+						// width is at least four
+						a = a | nth_byte(2, registerA) << 16 | nth_byte(3, registerA) << 24;
+						b = b | nth_byte(2, registerB) << 16 | nth_byte(3, registerB) << 24;
 
+						if (width == 4) {
+							unsigned int sum = c == 0x0A ? (unsigned int)a + (unsigned int)b : (unsigned int)a - (unsigned int)b;
+							stack_push(sstack, nth_byte(3, sum));
+							stack_push(sstack, nth_byte(2, sum));
+							stack_push(sstack, nth_byte(1, sum));
+							stack_push(sstack, nth_byte(0, sum));
+							break;
 						}
 
-						if (width == 8) {
+						// width is at least eight
+						a = a | nth_byte(4, registerA) << 32 | nth_byte(5, registerA) << 40 | nth_byte(6, registerA) << 48 | nth_byte(7, registerA) << 56;
+						b = b | nth_byte(4, registerB) << 32 | nth_byte(5, registerB) << 40 | nth_byte(6, registerB) << 48 | nth_byte(7, registerB) << 56;
 
+						if (width == 8) {
+							unsigned long sum = c == 0x0A ? (unsigned long)a + (unsigned long)b : (unsigned long)a - (unsigned long)b;
+							stack_push(sstack, nth_byte(7, sum));
+							stack_push(sstack, nth_byte(6, sum));
+							stack_push(sstack, nth_byte(5, sum));
+							stack_push(sstack, nth_byte(4, sum));
+							stack_push(sstack, nth_byte(3, sum));
+							stack_push(sstack, nth_byte(2, sum));
+							stack_push(sstack, nth_byte(1, sum));
+							stack_push(sstack, nth_byte(0, sum));
+							break;
 						}
 					} break;
 
