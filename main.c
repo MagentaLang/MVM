@@ -58,7 +58,7 @@ int main(int argc, char *argv[]) {
 						mode = push;
 					} break;
 
-					case 0x02: {
+					case 0x01: {
 						for (int i = 0; stack_peek(sstack) != 0x00; i++)
 							putchar(stack_pop(sstack));
 					} break;

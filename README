@@ -2,30 +2,80 @@
 
 mvm, magenta virtual machine, is a bytecode interpreter for magenta
 
+# special types
+
+if the push instruction runs into 0xFF it will substitute it for a null byte.
+
 # memory and io
 
 magenta bytecode is stack based. memory, to the program running inside the vm,
 seems like it is allocated in a long continuous stretch, in actuality it is not.
 
-special memory locations, linked to bytes not bits (0x00-07 == first 8 bytes)
-  0x01-08 -> stdout character (write to write on terminal, read last written ch)
-  0x09-10 -> stdin stack top (write anywhere in here to pop, readable)
-  0x11-14 -> stdin stack length (amount of characters left in stack, doesn't
-             accept any more input if stack length is 0xFFFFFFFF)
+devices ids are ascii strings that can be passed into the io bus to access their
+read/write streams.
+
+devices are mapped as specified by these offsets:
+  +0-7   -> input buffer, inputs are sent to the cpu byte by byte until a null
+            byte is sent. read behavior is as expected, returning the last
+            written byte
+  +8-F   -> output buffer, outputs are received from the cpu byte by byte. the
+            last byte you should receive in response to an input is null. write
+            behavior is unspecified.
+  +10-13 -> output buffer length, length of the output buffer, how many bytes
+            you can read from the buffer before it is empty.
+
+io bus [device] [no id, can't be created] [always mapped at 0x01-0x14]
+  [0x01XX..YY..] request to open a device
+    XX states how many bytes (the first ..) will be used to specify a device
+    before YY, similarly YY states the byte width of the memory address (the
+    second ..) to allocate the device to
+  [0x02YY..] request to close a device
+    YY states the byte width of the memory address (the ..) the device was
+    allocated at
+  [0x03AABB..] memory management
+    AA -> 00 (length)
+      write the bytewidth of the following data and amount of available memory to
+      output buffer. BB and .. are null bytes.
+    AA -> 01 (dealloc)
+      BB is bytewidth, .. is the amount of bytes to deallocate, returns either a
+      success or error code in output buffer.
+    AA -> 02 (alloc)
+      BB is bytewidth, .. is the amount of bytes to allocate, returns either a
+      success or error code in output buffer.
+
+file [device] [device id "FILEM:.."]
+  [id]
+    M is the mode the file is opened in. can be Read, Write, Mod, or Append. mod
+    is equivalent to a hybrid read/write, whilst append is like write only but
+    appending to end of another file. write/mod/append all create files, but
+    only write wipes files.
+    .. can be either a path to a file on the hard drive or a special file.
+  [special files]
+    special files to allow bytecode interoperability between VMs running on dif-
+    errent platforms, these include the following:
+      STD (R: stdin file, W: stdout file, M: both)
+      STDERR (R: unspecified, W: stderr file, M: unspecified)
+  [output buffer]
+    the output buffer allows you to read a file (or std stream) byte by byte, in
+    files (behavior for write only/actively written to read only files is not
+    specified) you can set the 'output buffer length' to change the focused byte
+    in the output buffer, moving to different parts of the file, where 0 is EOF.
+  [input buffer]
+    the input buffer allows you to write to a file (or std stream) byte by byte,
+    in files (behavior for read only/actively written to read only files is not
+    specified) if the file is in Mod mode,
+
 
 # instructions/opcodes
 
 if you see sN, that means top element of stack - N, s0 is the top element, s1 is
-the second-to-top element, s2 is the third-to-top element, etc.
+the second-to-top element, s2 is the third-to-top element, etc. if an action
+performed with a stack element and it is not pushing, then it is usually popping
 
 by default, all instructions work with 1 byte (8 bits) at once, using flags you
 can set the memory width to 2 bytes (16 bit), 4 bytes (32 bit), 8 bytes (64 bit)
 , and revert to the default 1 byte/8 bit memory width. when a flag is set, it is
 kept until another flag is encountered.
-
-if the push instruction runs into consecutive null bytes equal to the memory
-width, then it will substitute them by pushing 0x00 to the stack and continuing
-to read. if memory width is 1 byte then it will substitute a 0xFF byte for null.
 
 add/subtract instructions will overflow if memory width is too small, you should
 consider using a memory width one above the width of the numbers you pushed to
@@ -41,13 +91,13 @@ instructions marked with ! are not currently implemented.
 !01 | push bytes | following program bytes will be pushed to stack
 !02 | pop to A   | pop byte(s) from stack to A register
 !03 | pop to B   | pop byte(s) from stack to A register
-!04 | convert    | convert last memory width to ascii number string.
+!04 | convert #  | convert last memory width to ascii number string.
 ----|------------|--------------------------------------------------------------
-!05 | point set  | sets memory pointer to A
-!06 | point read | get memory address under pointer
-!07 | pntr write | write B to memory address under pointer
-!08 | malloc     | expand/allocate memory by A bytes
-!09 | demalloc   | shrink/deallocate memory by A bytes
+!05 | pointr set | sets memory pointer location to A
+!06 | pointr loc | push memory pointer location to stack
+!07 | pointr get | push memory data to stack, pushes as many bytes as width
+!08 | pntr write | pop byte from stack and write it to mem address under pointer
+!09 | pntr write | write B to memory address under pointer
 ----|------------|--------------------------------------------------------------
 !0A | add        | push answer of A + B to stack
 !0B | subtract   | push answer of A - B to stack
