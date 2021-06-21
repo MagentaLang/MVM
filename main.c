@@ -76,7 +76,7 @@ int main(int argc, char *argv[]) {
 
 			switch (mode) {
 				case normal: switch (c) {
-					case 0x1F: break; // noop
+					case 0x1F: case 0x10: case 0x11: break; // noop
 
 					case 0x00: {
 						mode = push;
@@ -97,7 +97,7 @@ int main(int argc, char *argv[]) {
 						if (c == 0x03) registerB = bytes;
 					} break;
 
-					case 0x16: { // debugging log command
+					case 0x1E: { // debugging log command
 						for (int i = 0; stack_peek(sstack) != 0x00; i++)
 							putchar(stack_pop(sstack));
 

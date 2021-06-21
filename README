@@ -70,8 +70,12 @@ file [device] [device id "FILEM:.."]
 # instructions/opcodes
 
 if you see sN, that means top element of stack - N, s0 is the top element, s1 is
-the second-to-top element, s2 is the third-to-top element, etc. if an action
-performed with a stack element and it is not pushing, then it is usually popping
+the second-to-top element, etc. if an action is performed with a stack element
+and it is not pushing, then it is usually popping.
+
+if you see bN, that means program counter (currently on the instruction) plus 1
+and N, so b0 is the byte directly after the instruction, b1 is the byte second
+after the instruction, etc.
 
 by default, all instructions work with 1 byte (8 bits) at once, using flags you
 can set the memory width to 2 bytes (16 bit), 4 bytes (32 bit), 8 bytes (64 bit)
@@ -103,19 +107,24 @@ instructions marked with ! are not currently implemented.
  0A | add        | push answer of A + B to stack
  0B | subtract   | push answer of A - B to stack
 ----|------------|--------------------------------------------------------------
-!0C | less       | if A isn't less than B then jump to s0
-!0D | less/eql   | if A isn't less than or equal to B then jump to s0
-!0E | greater    | if A isn't greater than B then jump to s0
-!0F | grt/eql    | if A isn't greater than or equal to B then jump to s0
-!10 | equal      | if A isn't equal to B then jump to s0
-!11 | jump       | set program counter to A
+!0C | greater    | if A isn't greater than B then jump to s0
+!0D | greater/eq | if A isn't greater than or equal to B then jump to s0
+!0E | equal      | if A isn't equal to B then jump to s0
+!0F | jump       | set program counter to s0
 ----|------------|--------------------------------------------------------------
  12 | 1byte flag | set memory width to 8 bits
  13 | 2byte flag | set memory width to 16 bits
  14 | 4byte flag | set memory width to 32 bits
  15 | 8byte flag | set memory width to 64 bits
 ----|------------|--------------------------------------------------------------
- 16 | debug      | logs contents of stack until null byte is reached
+!16 | depop A    | sets register A to 0 and pushes its previous value to stack
+!17 | depop B    | sets register B to 0 and pushes its previous value to stack
+----|------------|--------------------------------------------------------------
+ 18 | exit       | exits the program
+----|------------|--------------------------------------------------------------
+ 1E | debug      | logs contents of stack until null byte is reached
+ 10 | no op      |
+ 11 | no op      |
  1F | no op      |
 ----|------------|--------------------------------------------------------------
  0x | opcode     | notes
