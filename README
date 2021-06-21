@@ -115,9 +115,9 @@ instructions marked with ! are not currently implemented.
  0A | add        | push answer of A + B to stack
  0B | subtract   | push answer of A - B to stack
 ----|------------|--------------------------------------------------------------
-!0C | greater    | if A isn't greater than B then jump to s0
-!0D | greater/eq | if A isn't greater than or equal to B then jump to s0
-!0E | equal      | if A isn't equal to B then jump to s0
+ 0C | greater    | if A isn't greater than B then jump to s0
+ 0D | greater/eq | if A isn't greater than or equal to B then jump to s0
+ 0E | equal      | if A isn't equal to B then jump to s0
  0F | jump       | set program counter to s0
  10 | jmp to sub | set program counter to s0 and push old counter to call stack
  11 | exit sub   | pop value from call stack and go to it

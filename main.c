@@ -14,6 +14,7 @@
 void usage() {
 	printf("usage: mvm [-h] file\n");
 	printf("\t-h --help\tprints usage information\n");
+	exit(EXIT_SUCCESS);
 }
 
 enum mode {
@@ -22,247 +23,253 @@ enum mode {
 };
 
 int main(int argc, char *argv[]) {
-	if (argc <= 1) {
+	// print usage if...
+	// - not enough arguments are provided
+	if (argc <= 1)
 		usage();
+	// - if argument provided is asking for usage
+	if (argv[1] == "-h" || argv[1] == "--help")
+		usage();
+
+	// other wise continue running...
+
+	FILE *f = fopen(argv[1], "rb");
+
+	if (f == NULL) {
+		err("fatal: error opening file");
+		exit(EXIT_FAILURE);
+	}
+
+	// get file size
+	fseek(f, 0, SEEK_END);
+	unsigned long size = ftell(f);
+	fseek(f, 0, SEEK_SET);
+	// read program
+	unsigned long counter = 3; // program counter
+	unsigned char bytecode[size]; // bytecode
+	size_t ret_code = fread(bytecode, sizeof(char), size, f);
+	fclose(f); // close file after reading
+	if (ret_code == size) {
+		// good :)
 	} else {
-		if (argv[1] == "-h" || argv[1] == "--help") {
-			usage();
-			exit(EXIT_SUCCESS);
-		}
-
-		FILE *f = fopen(argv[1], "rb");
-
-		if (f == NULL) {
-			err("fatal: error opening file");
+		if (feof(f)) {
+			err("fatal: unexpected end of file\n");
+			exit(EXIT_FAILURE);
+		} else if (ferror(f)) {
+			err("fatal: error reading file\n");
 			exit(EXIT_FAILURE);
 		}
+	}
 
-		// get file size
-		fseek(f, 0, SEEK_END);
-		unsigned long size = ftell(f);
-		fseek(f, 0, SEEK_SET);
-		// read program
-		unsigned long counter = 3; // program counter
-		unsigned char bytecode[size]; // bytecode
-		size_t ret_code = fread(bytecode, sizeof(char), size, f);
-		fclose(f); // close file after reading
-		if (ret_code == size) {
-			// good :)
-		} else {
-			if (feof(f)) {
-				err("fatal: unexpected end of file\n");
-				exit(EXIT_FAILURE);
-			} else if (ferror(f)) {
-				err("fatal: error reading file\n");
-				exit(EXIT_FAILURE);
-			}
-		}
+	// call stack
+	stack *cstack = initstack(0xFFFF);
+	// system stack
+	stack *sstack = initstack(0xFFFF);
+	// create memory
+	unsigned char mmemory[2^8]; // dynamic memory array
+	unsigned int mpointer = 0x01; // memory pointer
+	// create registers
+	unsigned long registerA = 0x01;
+	unsigned long registerB = 0x01;
+	int width = 1; // byte width
 
-		// call stack
-		stack *cstack = initstack(0xFFFF);
-		// system stack
-		stack *sstack = initstack(0xFFFF);
-		// create memory
-		unsigned char mmemory[2^8]; // dynamic memory array
-		unsigned int mpointer = 0x01; // memory pointer
-		// create registers
-		unsigned long registerA = 0x01;
-		unsigned long registerB = 0x01;
-		int width = 1; // byte width
+	// verify file type
+	if (bytecode[0] != 'M' || bytecode[1] != 'V' || bytecode[2] != 'M') {
+		err("fatal: file is not magenta bytecode\n");
+		exit(EXIT_FAILURE);
+	}
 
-		// verify file type
-		if (bytecode[0] != 'M' || bytecode[1] != 'V' || bytecode[2] != 'M') {
-			err("fatal: file is not magenta bytecode\n");
-			exit(EXIT_FAILURE);
-		}
+	// execute program
+	enum mode mode = normal;
+	int currentindex = 0;
+	while (counter < size) {
+		unsigned char c = bytecode[counter];
+		currentindex++;
 
-		// execute program
-		enum mode mode = normal;
-		int currentindex = 0;
-		while (counter < size) {
-			unsigned char c = bytecode[counter];
-			currentindex++;
+		switch (mode) {
+			case normal: switch (c) {
+				case 0x1F: break; // noop
 
-			switch (mode) {
-				case normal: switch (c) {
-					case 0x1F: break; // noop
+				// enter push mode
+				case 0x00: {
+					mode = push;
+				} break;
 
-					// enter push mode
-					case 0x00: {
-						mode = push;
-					} break;
+				// push bytes
+				case 0x01: {
+					for (int i = 0; i < width; i++)
+						stack_push(sstack, bytecode[counter + i + 1]);
 
-					// push bytes
-					case 0x01: {
-						for (int i = 0; i < width; i++)
-							stack_push(sstack, bytecode[counter + i + 1]);
+					counter += width;
+				} break;
 
-						counter += width;
-					} break;
+				// convert
+				case 0x04: {
+					unsigned long byte;
+					stack_pop_width(sstack, width, &byte);
+					char str[20];
 
-					// convert
-					case 0x04: {
-						unsigned long byte;
-						stack_pop_width(sstack, width, &byte);
-						char str[20];
+					sprintf(str, "%lu", byte);
+					strrev(str);
 
-						sprintf(str, "%lu", byte);
-						strrev(str);
+					for (int i = 0; str[i] != 0x00; i++)
+						stack_push(sstack, str[i]);
+				} break;
 
-						for (int i = 0; str[i] != 0x00; i++)
-							stack_push(sstack, str[i]);
-					} break;
+				// pop to a/b
+				case 0x02: case 0x03: {
+					unsigned long bytes = 0;
+					stack_pop_width(sstack, width, &bytes);
 
-					// pop to a/b
-					case 0x02: case 0x03: {
-						unsigned long bytes = 0x00;
-						stack_pop_width(sstack, width, &bytes);
+					if (c == 0x02) registerA = bytes;
+					else if (c == 0x03) registerB = bytes;
+				} break;
 
-						if (c == 0x02) registerA = bytes;
-						if (c == 0x03) registerB = bytes;
-					} break;
+				// depop a/b
+				case 0x16: case 0x17: {
+					unsigned long reg = c == 0x16 ? registerA : registerB;
 
-					// depop a/b
-					case 0x16: case 0x17: {
-						unsigned long reg = c == 0x16 ? registerA : registerB;
-
-						if (width == 1) {
-							stack_push(sstack, nth_byte(0, reg));
-						} else if (width == 2) {
-							stack_push(sstack, nth_byte(1, reg));
-							stack_push(sstack, nth_byte(0, reg));
-						} else if (width == 4) {
-							stack_push(sstack, nth_byte(3, reg));
-							stack_push(sstack, nth_byte(2, reg));
-							stack_push(sstack, nth_byte(1, reg));
-							stack_push(sstack, nth_byte(0, reg));
-						} else if (width == 8) {
-							stack_push(sstack, nth_byte(7, reg));
-							stack_push(sstack, nth_byte(6, reg));
-							stack_push(sstack, nth_byte(5, reg));
-							stack_push(sstack, nth_byte(4, reg));
-							stack_push(sstack, nth_byte(3, reg));
-							stack_push(sstack, nth_byte(2, reg));
-							stack_push(sstack, nth_byte(1, reg));
-							stack_push(sstack, nth_byte(0, reg));
-						}
-					} break;
-
-					// debugging log command
-					case 0x1E: {
-						for (int i = 0; stack_peek(sstack) != 0x00; i++)
-							putchar(stack_pop(sstack));
-
-						stack_pop(sstack);
-					} break;
-
-					// add/subtract
-					case 0x0A: case 0x0B: {
-						// width is at least one
-						unsigned long a = nth_byte(0, registerA);
-						unsigned long b = nth_byte(0, registerB);
-
-						if (width == 1) {
-							stack_push(sstack, c == 0x0A ? (unsigned char)a + (unsigned char)b : (unsigned char)a - (unsigned char)b);
-							break;
-						}
-
-						// width is at least two
-						a = a | nth_byte(1, registerA) << 8;
-						b = b | nth_byte(1, registerB) << 8;
-
-						if (width == 2) {
-							unsigned short sum = c == 0x0A ? (unsigned short)a + (unsigned short)b : (unsigned short)a - (unsigned short)b;
-							stack_push(sstack, nth_byte(1, sum));
-							stack_push(sstack, nth_byte(0, sum));
-							break;
-						}
-
-						// width is at least four
-						a = a | nth_byte(2, registerA) << 16 | nth_byte(3, registerA) << 24;
-						b = b | nth_byte(2, registerB) << 16 | nth_byte(3, registerB) << 24;
-
-						if (width == 4) {
-							unsigned int sum = c == 0x0A ? (unsigned int)a + (unsigned int)b : (unsigned int)a - (unsigned int)b;
-							stack_push(sstack, nth_byte(3, sum));
-							stack_push(sstack, nth_byte(2, sum));
-							stack_push(sstack, nth_byte(1, sum));
-							stack_push(sstack, nth_byte(0, sum));
-							break;
-						}
-
-						// width is at least eight
-						a = a | nth_byte(4, registerA) << 32 | nth_byte(5, registerA) << 40 | nth_byte(6, registerA) << 48 | nth_byte(7, registerA) << 56;
-						b = b | nth_byte(4, registerB) << 32 | nth_byte(5, registerB) << 40 | nth_byte(6, registerB) << 48 | nth_byte(7, registerB) << 56;
-
-						if (width == 8) {
-							unsigned long sum = c == 0x0A ? (unsigned long)a + (unsigned long)b : (unsigned long)a - (unsigned long)b;
-							stack_push(sstack, nth_byte(7, sum));
-							stack_push(sstack, nth_byte(6, sum));
-							stack_push(sstack, nth_byte(5, sum));
-							stack_push(sstack, nth_byte(4, sum));
-							stack_push(sstack, nth_byte(3, sum));
-							stack_push(sstack, nth_byte(2, sum));
-							stack_push(sstack, nth_byte(1, sum));
-							stack_push(sstack, nth_byte(0, sum));
-							break;
-						}
-					} break;
-
-					//
-
-					// jump (to sub)
-					case 0x0F: case 0x10: {
-						if (c == 0x10)
-							stack_push(cstack, counter);
-
-						unsigned long newcounter;
-						stack_pop_width(sstack, width, &newcounter);
-						counter = newcounter - 1;
-					} break;
-
-					// exit sub
-					case 0x11: {
-						unsigned long newcounter;
-						stack_pop_width(cstack, width, &newcounter);
-						counter = newcounter;
-					} break;
-
-					// byte width flags
-					case 0x12: width = 1; break;
-					case 0x13: width = 2; break;
-					case 0x14: width = 4; break;
-					case 0x15: width = 8; break;
-
-					// exit
-					case 0x18: counter = size; break;
-
-					default: {
-						err("fatal: invalid opcode");
-						printf("\n          [%ld] 0x%x <--\n", counter + 1, c);
-						exit(EXIT_FAILURE);
+					if (width == 1) {
+						stack_push(sstack, nth_byte(0, reg));
+					} else if (width == 2) {
+						stack_push(sstack, nth_byte(1, reg));
+						stack_push(sstack, nth_byte(0, reg));
+					} else if (width == 4) {
+						stack_push(sstack, nth_byte(3, reg));
+						stack_push(sstack, nth_byte(2, reg));
+						stack_push(sstack, nth_byte(1, reg));
+						stack_push(sstack, nth_byte(0, reg));
+					} else if (width == 8) {
+						stack_push(sstack, nth_byte(7, reg));
+						stack_push(sstack, nth_byte(6, reg));
+						stack_push(sstack, nth_byte(5, reg));
+						stack_push(sstack, nth_byte(4, reg));
+						stack_push(sstack, nth_byte(3, reg));
+						stack_push(sstack, nth_byte(2, reg));
+						stack_push(sstack, nth_byte(1, reg));
+						stack_push(sstack, nth_byte(0, reg));
 					}
 				} break;
 
-				case push:
-					if (c == 0x00) {
-						mode = normal;
-					} else if (c >= 0xFF) {
-						stack_push(sstack, 0x00);
-					} else {
-						stack_push(sstack, c);
-					}
-					break;
-			}
+				// debugging log command
+				case 0x1E: {
+					for (int i = 0; stack_peek(sstack) != 0x00; i++)
+						putchar(stack_pop(sstack));
 
-			counter++;
+					stack_pop(sstack);
+				} break;
+
+				// math
+				case 0x0A: case 0x0B: {
+					// width is at least one
+					unsigned long a = nth_byte(0, registerA);
+					unsigned long b = nth_byte(0, registerB);
+
+					if (width == 1) {
+						stack_push(sstack, c == 0x0A ? (unsigned char)a + (unsigned char)b : (unsigned char)a - (unsigned char)b);
+						break;
+					}
+
+					// width is at least two
+					a = a | nth_byte(1, registerA) << 8;
+					b = b | nth_byte(1, registerB) << 8;
+
+					if (width == 2) {
+						unsigned short sum = c == 0x0A ? (unsigned short)a + (unsigned short)b : (unsigned short)a - (unsigned short)b;
+						stack_push(sstack, nth_byte(1, sum));
+						stack_push(sstack, nth_byte(0, sum));
+						break;
+					}
+
+					// width is at least four
+					a = a | nth_byte(2, registerA) << 16 | nth_byte(3, registerA) << 24;
+					b = b | nth_byte(2, registerB) << 16 | nth_byte(3, registerB) << 24;
+
+					if (width == 4) {
+						unsigned int sum = c == 0x0A ? (unsigned int)a + (unsigned int)b : (unsigned int)a - (unsigned int)b;
+						stack_push(sstack, nth_byte(3, sum));
+						stack_push(sstack, nth_byte(2, sum));
+						stack_push(sstack, nth_byte(1, sum));
+						stack_push(sstack, nth_byte(0, sum));
+						break;
+					}
+
+					// width is at least eight
+					a = a | nth_byte(4, registerA) << 32 | nth_byte(5, registerA) << 40 | nth_byte(6, registerA) << 48 | nth_byte(7, registerA) << 56;
+					b = b | nth_byte(4, registerB) << 32 | nth_byte(5, registerB) << 40 | nth_byte(6, registerB) << 48 | nth_byte(7, registerB) << 56;
+
+					if (width == 8) {
+						unsigned long sum = c == 0x0A ? (unsigned long)a + (unsigned long)b : (unsigned long)a - (unsigned long)b;
+						stack_push(sstack, nth_byte(7, sum));
+						stack_push(sstack, nth_byte(6, sum));
+						stack_push(sstack, nth_byte(5, sum));
+						stack_push(sstack, nth_byte(4, sum));
+						stack_push(sstack, nth_byte(3, sum));
+						stack_push(sstack, nth_byte(2, sum));
+						stack_push(sstack, nth_byte(1, sum));
+						stack_push(sstack, nth_byte(0, sum));
+						break;
+					}
+				} break;
+
+				// conditionals
+				case 0x0C: case 0x0D: case 0x0E: {
+					err("fatal: invalid opcode");
+					printf("\n          [%ld] 0x%x <--\n", counter + 1, c);
+					exit(EXIT_FAILURE);
+				} break;
+
+				// jump (to sub)
+				case 0x0F: case 0x10: {
+					if (c == 0x10)
+						stack_push(cstack, counter);
+
+					unsigned long newcounter;
+					stack_pop_width(sstack, width, &newcounter);
+					counter = newcounter - 1;
+				} break;
+
+				// exit sub
+				case 0x11: {
+					unsigned long newcounter;
+					stack_pop_width(cstack, width, &newcounter);
+					counter = newcounter;
+				} break;
+
+				// byte width flags
+				case 0x12: width = 1; break;
+				case 0x13: width = 2; break;
+				case 0x14: width = 4; break;
+				case 0x15: width = 8; break;
+
+				// exit
+				case 0x18: counter = size; break;
+
+				default: {
+					err("fatal: invalid opcode");
+					printf("\n          [%ld] 0x%x <--\n", counter + 1, c);
+					exit(EXIT_FAILURE);
+				}
+			} break;
+
+			case push:
+				if (c == 0x00) {
+					mode = normal;
+				} else if (c >= 0xFF) {
+					stack_push(sstack, 0x00);
+				} else {
+					stack_push(sstack, c);
+				}
+				break;
 		}
 
-		// clean up
-		free(sstack);
-		free(cstack);
-		//free(mmemory);
+		counter++;
 	}
+
+	// clean up
+	free(sstack);
+	free(cstack);
+	//free(mmemory);
 
 	return 0;
 }
