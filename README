@@ -110,9 +110,9 @@ instructions marked with ! are not currently implemented.
 !0C | greater    | if A isn't greater than B then jump to s0
 !0D | greater/eq | if A isn't greater than or equal to B then jump to s0
 !0E | equal      | if A isn't equal to B then jump to s0
-!0F | jump       | set program counter to s0
-!10 | jmp to sub | set program counter to s0 and push old counter to call stack
-!11 | exit sub   | pop value from call stack and go to it
+ 0F | jump       | set program counter to s0
+ 10 | jmp to sub | set program counter to s0 and push old counter to call stack
+ 11 | exit sub   | pop value from call stack and go to it
 ----|------------|--------------------------------------------------------------
  12 | 1byte flag | set memory width to 8 bits
  13 | 2byte flag | set memory width to 16 bits

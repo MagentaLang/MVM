@@ -39,10 +39,10 @@ int main(int argc, char *argv[]) {
 
 		// get file size
 		fseek(f, 0, SEEK_END);
-		unsigned size = ftell(f);
+		unsigned long size = ftell(f);
 		fseek(f, 0, SEEK_SET);
 		// create program stack
-		int counter = 3; // program counter
+		unsigned long counter = 3; // program counter
 		unsigned char bytecode[size]; // bytecode
 		size_t ret_code = fread(bytecode, sizeof(char), size, f);
 		if (ret_code == size) {
@@ -77,17 +77,22 @@ int main(int argc, char *argv[]) {
 
 		// execute program
 		enum mode mode = normal;
+		int currentindex = 0;
 		while (counter < size) {
 			unsigned char c = bytecode[counter];
+			currentindex++;
+			printf("%d: [%ld] 0x%x -> %c\n", currentindex, counter, c, c);
 
 			switch (mode) {
 				case normal: switch (c) {
-					case 0x1F: case 0x10: case 0x11: break; // noop
+					case 0x1F: break; // noop
 
+					// enter push mode
 					case 0x00: {
 						mode = push;
 					} break;
 
+					// push bytes
 					case 0x01: {
 						for (int i = 0; i < width; i++)
 							stack_push(sstack, bytecode[counter + i + 1]);
@@ -95,21 +100,7 @@ int main(int argc, char *argv[]) {
 						counter += width;
 					} break;
 
-					case 0x02: case 0x03: {
-						unsigned long bytes = 0x00;
-						stack_pop_width(sstack, width, &bytes);
-
-						if (c == 0x02) registerA = bytes;
-						if (c == 0x03) registerB = bytes;
-					} break;
-
-					case 0x1E: { // debugging log command
-						for (int i = 0; stack_peek(sstack) != 0x00; i++)
-							putchar(stack_pop(sstack));
-
-						stack_pop(sstack);
-					} break;
-
+					// convert
 					case 0x04: {
 						unsigned long byte;
 						stack_pop_width(sstack, width, &byte);
@@ -122,6 +113,50 @@ int main(int argc, char *argv[]) {
 							stack_push(sstack, str[i]);
 					} break;
 
+					// pop to a/b
+					case 0x02: case 0x03: {
+						unsigned long bytes = 0x00;
+						stack_pop_width(sstack, width, &bytes);
+
+						if (c == 0x02) registerA = bytes;
+						if (c == 0x03) registerB = bytes;
+					} break;
+
+					// depop a/b
+					case 0x16: case 0x17: {
+						unsigned long reg = c == 0x16 ? registerA : registerB;
+
+						if (width == 1) {
+							stack_push(sstack, nth_byte(0, reg));
+						} else if (width == 2) {
+							stack_push(sstack, nth_byte(1, reg));
+							stack_push(sstack, nth_byte(0, reg));
+						} else if (width == 4) {
+							stack_push(sstack, nth_byte(3, reg));
+							stack_push(sstack, nth_byte(2, reg));
+							stack_push(sstack, nth_byte(1, reg));
+							stack_push(sstack, nth_byte(0, reg));
+						} else if (width == 8) {
+							stack_push(sstack, nth_byte(7, reg));
+							stack_push(sstack, nth_byte(6, reg));
+							stack_push(sstack, nth_byte(5, reg));
+							stack_push(sstack, nth_byte(4, reg));
+							stack_push(sstack, nth_byte(3, reg));
+							stack_push(sstack, nth_byte(2, reg));
+							stack_push(sstack, nth_byte(1, reg));
+							stack_push(sstack, nth_byte(0, reg));
+						}
+					} break;
+
+					// debugging log command
+					case 0x1E: {
+						for (int i = 0; stack_peek(sstack) != 0x00; i++)
+							putchar(stack_pop(sstack));
+
+						stack_pop(sstack);
+					} break;
+
+					// add/subtract
 					case 0x0A: case 0x0B: {
 						// width is at least one
 						unsigned long a = nth_byte(0, registerA);
@@ -174,39 +209,35 @@ int main(int argc, char *argv[]) {
 						}
 					} break;
 
-					case 0x16: case 0x17: {
-						unsigned long reg = c == 0x16 ? registerA : registerB;
+					// jump (to sub)
+					case 0x0F: case 0x10: {
+						if (c == 0x10)
+							stack_push(cstack, counter);
 
-						if (width == 1) {
-							stack_push(sstack, nth_byte(0, reg));
-						} else if (width == 2) {
-							stack_push(sstack, nth_byte(1, reg));
-							stack_push(sstack, nth_byte(0, reg));
-						} else if (width == 4) {
-							stack_push(sstack, nth_byte(3, reg));
-							stack_push(sstack, nth_byte(2, reg));
-							stack_push(sstack, nth_byte(1, reg));
-							stack_push(sstack, nth_byte(0, reg));
-						} else if (width == 8) {
-							stack_push(sstack, nth_byte(7, reg));
-							stack_push(sstack, nth_byte(6, reg));
-							stack_push(sstack, nth_byte(5, reg));
-							stack_push(sstack, nth_byte(4, reg));
-							stack_push(sstack, nth_byte(3, reg));
-							stack_push(sstack, nth_byte(2, reg));
-							stack_push(sstack, nth_byte(1, reg));
-							stack_push(sstack, nth_byte(0, reg));
-						}
+						unsigned long newcounter;
+						stack_pop_width(sstack, width, &newcounter);
+						counter = newcounter - 1;
 					} break;
 
+					// exit sub
+					case 0x11: {
+						unsigned long newcounter = stack_pop(cstack);
+						counter = newcounter;
+						stack_dump(cstack);
+					} break;
+
+					// byte width flags
 					case 0x12: width = 1; break;
 					case 0x13: width = 2; break;
 					case 0x14: width = 4; break;
 					case 0x15: width = 8; break;
 
+					// exit
+					case 0x18: counter = size; break;
+
 					default: {
 						err("fatal: invalid opcode");
-						printf("\n          [%d] 0x%x <--\n", counter + 1, c);
+						printf("\n          [%ld] 0x%x <--\n", counter + 1, c);
 						exit(EXIT_FAILURE);
 					}
 				} break;
