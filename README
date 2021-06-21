@@ -131,6 +131,7 @@ instructions marked with ! are not currently implemented.
  17 | depop B    | pushes the value in B to stack without clearing B
 ----|------------|--------------------------------------------------------------
  18 | exit       | exits the program
+ 19 | destr. pop | destructive pop, remove from the stack without setting a reg.
 ----|------------|--------------------------------------------------------------
  1E | debug      | logs contents of stack until null byte is reached
  1F | no op      |

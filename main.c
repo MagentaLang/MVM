@@ -214,9 +214,21 @@ int main(int argc, char *argv[]) {
 
 				// conditionals
 				case 0x0C: case 0x0D: case 0x0E: {
-					err("fatal: invalid opcode");
-					printf("\n          [%ld] 0x%x <--\n", counter + 1, c);
-					exit(EXIT_FAILURE);
+					int condition = 0;
+					unsigned long newcounter;
+					stack_pop_width(sstack, width, &newcounter);
+
+					if (c == 0x0C) {
+						condition = registerA > registerB;
+					} else if (c == 0x0D) {
+						condition = registerA >= registerB;
+					} else if (c == 0x0E) {
+						condition = registerA == registerB;
+					}
+
+					if (condition == 0) {
+						counter = newcounter - 1;
+					}
 				} break;
 
 				// jump (to sub)
@@ -244,6 +256,8 @@ int main(int argc, char *argv[]) {
 
 				// exit
 				case 0x18: counter = size; break;
+				// pop
+				case 0x19: stack_pop(sstack); break;
 
 				default: {
 					err("fatal: invalid opcode");
