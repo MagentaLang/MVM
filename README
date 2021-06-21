@@ -111,20 +111,20 @@ instructions marked with ! are not currently implemented.
 !0D | greater/eq | if A isn't greater than or equal to B then jump to s0
 !0E | equal      | if A isn't equal to B then jump to s0
 !0F | jump       | set program counter to s0
+!10 | jmp to sub | set program counter to s0 and push old counter to call stack
+!11 | exit sub   | pop value from call stack and go to it
 ----|------------|--------------------------------------------------------------
  12 | 1byte flag | set memory width to 8 bits
  13 | 2byte flag | set memory width to 16 bits
  14 | 4byte flag | set memory width to 32 bits
  15 | 8byte flag | set memory width to 64 bits
 ----|------------|--------------------------------------------------------------
-!16 | depop A    | sets register A to 0 and pushes its previous value to stack
-!17 | depop B    | sets register B to 0 and pushes its previous value to stack
+ 16 | depop A    | pushes the value in A to stack without clearing A
+ 17 | depop B    | pushes the value in B to stack without clearing B
 ----|------------|--------------------------------------------------------------
  18 | exit       | exits the program
 ----|------------|--------------------------------------------------------------
  1E | debug      | logs contents of stack until null byte is reached
- 10 | no op      |
- 11 | no op      |
  1F | no op      |
 ----|------------|--------------------------------------------------------------
  0x | opcode     | notes

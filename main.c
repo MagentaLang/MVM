@@ -41,15 +41,8 @@ int main(int argc, char *argv[]) {
 		fseek(f, 0, SEEK_END);
 		unsigned size = ftell(f);
 		fseek(f, 0, SEEK_SET);
-
-		unsigned char mstack[256]; // memory
-		unsigned int mpointer = 0x01;
-		unsigned long registerA = 0x01;
-		unsigned long registerB = 0x01;
-		int width = 1; // byte width
-		stack *sstack = initstack(1024); // stack
 		// create program stack
-		int counter = 3;
+		int counter = 3; // program counter
 		unsigned char bytecode[size]; // bytecode
 		size_t ret_code = fread(bytecode, sizeof(char), size, f);
 		if (ret_code == size) {
@@ -64,6 +57,19 @@ int main(int argc, char *argv[]) {
 			}
 		}
 
+		// call stack
+		stack *cstack = initstack(0xFFFF);
+		// system stack
+		stack *sstack = initstack(0xFFFF);
+		// create memory
+		unsigned char mmemory[2^8]; // dynamic memory array
+		unsigned int mpointer = 0x01; // memory pointer
+		// create registers
+		unsigned long registerA = 0x01;
+		unsigned long registerB = 0x01;
+		int width = 1; // byte width
+
+		// verify file type
 		if (bytecode[0] != 'M' || bytecode[1] != 'V' || bytecode[2] != 'M') {
 			err("fatal: file is not magenta bytecode\n");
 			exit(EXIT_FAILURE);
@@ -168,6 +174,31 @@ int main(int argc, char *argv[]) {
 						}
 					} break;
 
+					case 0x16: case 0x17: {
+						unsigned long reg = c == 0x16 ? registerA : registerB;
+
+						if (width == 1) {
+							stack_push(sstack, nth_byte(0, reg));
+						} else if (width == 2) {
+							stack_push(sstack, nth_byte(1, reg));
+							stack_push(sstack, nth_byte(0, reg));
+						} else if (width == 4) {
+							stack_push(sstack, nth_byte(3, reg));
+							stack_push(sstack, nth_byte(2, reg));
+							stack_push(sstack, nth_byte(1, reg));
+							stack_push(sstack, nth_byte(0, reg));
+						} else if (width == 8) {
+							stack_push(sstack, nth_byte(7, reg));
+							stack_push(sstack, nth_byte(6, reg));
+							stack_push(sstack, nth_byte(5, reg));
+							stack_push(sstack, nth_byte(4, reg));
+							stack_push(sstack, nth_byte(3, reg));
+							stack_push(sstack, nth_byte(2, reg));
+							stack_push(sstack, nth_byte(1, reg));
+							stack_push(sstack, nth_byte(0, reg));
+						}
+					} break;
+
 					case 0x12: width = 1; break;
 					case 0x13: width = 2; break;
 					case 0x14: width = 4; break;
@@ -194,7 +225,11 @@ int main(int argc, char *argv[]) {
 			counter++;
 		}
 
+		// clean up
 		fclose(f);
+		free(sstack);
+		free(cstack);
+		//free(mmemory);
 	}
 
 	return 0;
