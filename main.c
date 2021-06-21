@@ -81,7 +81,6 @@ int main(int argc, char *argv[]) {
 		while (counter < size) {
 			unsigned char c = bytecode[counter];
 			currentindex++;
-			printf("%d: [%ld] 0x%x -> %c\n", currentindex, counter, c, c);
 
 			switch (mode) {
 				case normal: switch (c) {
@@ -221,9 +220,9 @@ int main(int argc, char *argv[]) {
 
 					// exit sub
 					case 0x11: {
-						unsigned long newcounter = stack_pop(cstack);
+						unsigned long newcounter;
+						stack_pop_width(cstack, width, &newcounter);
 						counter = newcounter;
-						stack_dump(cstack);
 					} break;
 
 					// byte width flags
