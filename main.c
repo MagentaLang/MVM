@@ -41,10 +41,11 @@ int main(int argc, char *argv[]) {
 		fseek(f, 0, SEEK_END);
 		unsigned long size = ftell(f);
 		fseek(f, 0, SEEK_SET);
-		// create program stack
+		// read program
 		unsigned long counter = 3; // program counter
 		unsigned char bytecode[size]; // bytecode
 		size_t ret_code = fread(bytecode, sizeof(char), size, f);
+		fclose(f); // close file after reading
 		if (ret_code == size) {
 			// good :)
 		} else {
@@ -208,6 +209,8 @@ int main(int argc, char *argv[]) {
 						}
 					} break;
 
+					//
+
 					// jump (to sub)
 					case 0x0F: case 0x10: {
 						if (c == 0x10)
@@ -256,7 +259,6 @@ int main(int argc, char *argv[]) {
 		}
 
 		// clean up
-		fclose(f);
 		free(sstack);
 		free(cstack);
 		//free(mmemory);

@@ -14,7 +14,8 @@ magenta bytecode is stack based. memory, to the program running inside the vm,
 seems like it is allocated in a long continuous stretch, in actuality it is not.
 
 devices ids are ascii strings that can be passed into the io bus to access their
-read/write streams.
+read/write streams. if an input command for a device states that it "returns"
+something, then it is most likely writing to its output buffer.
 
 devices are mapped as specified by these offsets:
   +0-7   -> input buffer, inputs are sent to the cpu byte by byte until a null
@@ -30,20 +31,27 @@ io bus [device] [no id, can't be created] [always mapped at 0x01-0x14]
   [0x01XX..YY..] request to open a device
     XX states how many bytes (the first ..) will be used to specify a device
     before YY, similarly YY states the byte width of the memory address (the
-    second ..) to allocate the device to
+    second ..) to allocate the device to. returns a 1 byte if operation was
+    successful, otherwise a 0 byte if not.
   [0x02YY..] request to close a device
     YY states the byte width of the memory address (the ..) the device was
-    allocated at
+    allocated at. returns a 1 byte if operation was successful, otherwise a 0
+    byte if not.
   [0x03AABB..] memory management
     AA -> 00 (length)
-      write the bytewidth of the following data and amount of available memory to
-      output buffer. BB and .. are null bytes.
+      write the bytewidth of the following data and amount of available memory
+      to output buffer. BB and .. are null bytes. returns a 1 byte if operation
+      was successful, otherwise a 0 byte if not.
     AA -> 01 (dealloc)
-      BB is bytewidth, .. is the amount of bytes to deallocate, returns either a
-      success or error code in output buffer.
+      BB is bytewidth, .. is the amount of bytes to deallocate, returns a 1 byte
+      if operation was successful, otherwise a 0 byte if not.
     AA -> 02 (alloc)
-      BB is bytewidth, .. is the amount of bytes to allocate, returns either a
-      success or error code in output buffer.
+      BB is bytewidth, .. is the amount of bytes to allocate, returns a 1 byte
+      if operation was successful, otherwise a 0 byte if not.
+
+TODO: instead of directly accessing files as devices, have an intermediary
+      "storage" device. (will be represented as a mounted directory on host)
+      there should also be a way of listing storage devices through the io bus
 
 file [device] [device id "FILEM:.."]
   [id]
