@@ -62,11 +62,11 @@ int main(int argc, char *argv[]) {
 	}
 
 	// call stack
-	stack *cstack = initstack(0xFFFF);
+	stack *cstack = initstack(1 << 16);
 	// system stack
-	stack *sstack = initstack(0xFFFF);
+	stack *sstack = initstack(1 << 16);
 	// create memory
-	unsigned char mmemory[2^8]; // dynamic memory array
+	unsigned char mmemory[1 << 8]; // TODO: dynamic memory array
 	unsigned int mpointer = 0x01; // memory pointer
 	// create registers
 	unsigned long registerA = 0x01;
@@ -312,18 +312,35 @@ int main(int argc, char *argv[]) {
 					stack_pop(sstack);
 				} break;
 
-				// pop to a/b
-				case 0x20: case 0x22: {
+				// pop to register
+				case 0x20: case 0x22: case 0x24: case 0x26:
+				case 0x28: case 0x2A: case 0x2C: case 0x2E: {
 					unsigned long bytes = 0;
 					stack_pop_width(sstack, width, &bytes);
 
 					if (c == 0x20) registerA = bytes;
 					else if (c == 0x22) registerB = bytes;
+					else if (c == 0x24) registerC = bytes;
+					else if (c == 0x26) registerD = bytes;
+					else if (c == 0x28) registerE = bytes;
+					else if (c == 0x2A) registerF = bytes;
+					else if (c == 0x2C) registerG = bytes;
+					else if (c == 0x2E) registerH = bytes;
 				} break;
 
-				// depop a/b
-				case 0x21: case 0x23: {
-					unsigned long reg = c == 0x21 ? registerA : registerB;
+				// depop from register
+				case 0x21: case 0x23: case 0x25: case 0x27:
+				case 0x29: case 0x2B: case 0x2D: case 0x2F: {
+					unsigned long reg;
+
+					if (c == 0x21) reg = registerA;
+					else if (c == 0x23) reg = registerB;
+					else if (c == 0x25) reg = registerC;
+					else if (c == 0x27) reg = registerD;
+					else if (c == 0x29) reg = registerE;
+					else if (c == 0x2B) reg = registerF;
+					else if (c == 0x2D) reg = registerG;
+					else if (c == 0x2F) reg = registerH;
 
 					if (width == 1) {
 						stack_push(sstack, nth_byte(0, reg));
