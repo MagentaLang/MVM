@@ -71,6 +71,12 @@ int main(int argc, char *argv[]) {
 	// create registers
 	unsigned long registerA = 0x01;
 	unsigned long registerB = 0x01;
+	unsigned long registerC = 0x01;
+	unsigned long registerD = 0x01;
+	unsigned long registerE = 0x01;
+	unsigned long registerF = 0x01;
+	unsigned long registerG = 0x01;
+	unsigned long registerH = 0x01;
 	int width = 1; // byte width
 
 	// verify file type
@@ -88,7 +94,11 @@ int main(int argc, char *argv[]) {
 
 		switch (mode) {
 			case normal: switch (c) {
-				case 0x1F: break; // noop
+				// noops
+				case 0x05:
+				case 0x0A: case 0x0B:
+				case 0x11: case 0x13:
+				case 0x1F: break;
 
 				// enter push mode
 				case 0x00: {
@@ -103,8 +113,11 @@ int main(int argc, char *argv[]) {
 					counter += width;
 				} break;
 
+				// destructive pop
+				case 0x02: stack_pop(sstack); break;
+
 				// convert
-				case 0x04: {
+				case 0x03: {
 					unsigned long byte;
 					stack_pop_width(sstack, width, &byte);
 					char str[20];
@@ -116,53 +129,105 @@ int main(int argc, char *argv[]) {
 						stack_push(sstack, str[i]);
 				} break;
 
-				// pop to a/b
-				case 0x02: case 0x03: {
-					unsigned long bytes = 0;
-					stack_pop_width(sstack, width, &bytes);
-
-					if (c == 0x02) registerA = bytes;
-					else if (c == 0x03) registerB = bytes;
-				} break;
-
-				// depop a/b
-				case 0x16: case 0x17: {
-					unsigned long reg = c == 0x16 ? registerA : registerB;
+				// math
+				case 0x06: case 0x07: {
+					// width is at least one
+					unsigned long a = nth_byte(0, registerA);
+					unsigned long b = nth_byte(0, registerB);
 
 					if (width == 1) {
-						stack_push(sstack, nth_byte(0, reg));
-					} else if (width == 2) {
-						stack_push(sstack, nth_byte(1, reg));
-						stack_push(sstack, nth_byte(0, reg));
-					} else if (width == 4) {
-						stack_push(sstack, nth_byte(3, reg));
-						stack_push(sstack, nth_byte(2, reg));
-						stack_push(sstack, nth_byte(1, reg));
-						stack_push(sstack, nth_byte(0, reg));
-					} else if (width == 8) {
-						stack_push(sstack, nth_byte(7, reg));
-						stack_push(sstack, nth_byte(6, reg));
-						stack_push(sstack, nth_byte(5, reg));
-						stack_push(sstack, nth_byte(4, reg));
-						stack_push(sstack, nth_byte(3, reg));
-						stack_push(sstack, nth_byte(2, reg));
-						stack_push(sstack, nth_byte(1, reg));
-						stack_push(sstack, nth_byte(0, reg));
+						stack_push(sstack, c == 0x08 ? (unsigned char)a + (unsigned char)b : (unsigned char)a - (unsigned char)b);
+						break;
+					}
+
+					// width is at least two
+					a = a | nth_byte(1, registerA) << 8;
+					b = b | nth_byte(1, registerB) << 8;
+
+					if (width == 2) {
+						unsigned short sum = c == 0x08 ? (unsigned short)a + (unsigned short)b : (unsigned short)a - (unsigned short)b;
+						stack_push(sstack, nth_byte(1, sum));
+						stack_push(sstack, nth_byte(0, sum));
+						break;
+					}
+
+					// width is at least four
+					a = a | nth_byte(2, registerA) << 16 | nth_byte(3, registerA) << 24;
+					b = b | nth_byte(2, registerB) << 16 | nth_byte(3, registerB) << 24;
+
+					if (width == 4) {
+						unsigned int sum = c == 0x08 ? (unsigned int)a + (unsigned int)b : (unsigned int)a - (unsigned int)b;
+						stack_push(sstack, nth_byte(3, sum));
+						stack_push(sstack, nth_byte(2, sum));
+						stack_push(sstack, nth_byte(1, sum));
+						stack_push(sstack, nth_byte(0, sum));
+						break;
+					}
+
+					// width is at least eight
+					a = a | nth_byte(4, registerA) << 32 | nth_byte(5, registerA) << 40 | nth_byte(6, registerA) << 48 | nth_byte(7, registerA) << 56;
+					b = b | nth_byte(4, registerB) << 32 | nth_byte(5, registerB) << 40 | nth_byte(6, registerB) << 48 | nth_byte(7, registerB) << 56;
+
+					if (width == 8) {
+						unsigned long sum = c == 0x08 ? (unsigned long)a + (unsigned long)b : (unsigned long)a - (unsigned long)b;
+						stack_push(sstack, nth_byte(7, sum));
+						stack_push(sstack, nth_byte(6, sum));
+						stack_push(sstack, nth_byte(5, sum));
+						stack_push(sstack, nth_byte(4, sum));
+						stack_push(sstack, nth_byte(3, sum));
+						stack_push(sstack, nth_byte(2, sum));
+						stack_push(sstack, nth_byte(1, sum));
+						stack_push(sstack, nth_byte(0, sum));
+						break;
 					}
 				} break;
 
-				// debugging log command
-				case 0x1E: {
-					for (int i = 0; stack_peek(sstack) != 0x00; i++)
-						putchar(stack_pop(sstack));
+				// conditionals
+				case 0x08: case 0x09: {
+					int condition = 0;
+					unsigned long newcounter;
+					stack_pop_width(sstack, width, &newcounter);
 
-					stack_pop(sstack);
+					if (c == 0x08) {
+						condition = registerA > registerB;
+					} else if (c == 0x09) {
+						condition = registerA == registerB;
+					}
+
+					if (condition == 0) {
+						counter = newcounter - 1;
+					}
+				} break;
+
+				// jump (to sub)
+				case 0x0C: case 0x0D: {
+					if (c == 0xD)
+						stack_push(cstack, counter);
+
+					unsigned long newcounter;
+					stack_pop_width(sstack, width, &newcounter);
+					counter = newcounter - 1;
+				} break;
+
+				// exit
+				case 0x0E: counter = size; break;
+
+				// exit sub
+				case 0x0F: {
+					unsigned long newcounter;
+					stack_pop_width(cstack, width, &newcounter);
+					counter = newcounter;
 				} break;
 
 				// memory set
-				case 0x05: mpointer = registerA; break;
-				// memory loc
-				case 0x06: {
+				case 0x10: {
+					unsigned long newpointer;
+					stack_pop_width(sstack, width, &newpointer);
+					mpointer = newpointer;
+				} break;
+
+				// memory location
+				case 0x12: {
 					if (width == 1) {
 						stack_push(sstack, nth_byte(0, mpointer));
 					} else if (width == 2) {
@@ -184,8 +249,9 @@ int main(int argc, char *argv[]) {
 						stack_push(sstack, nth_byte(0, mpointer));
 					}
 				} break;
-				// memory read
-				case 0x07: {
+
+				// memory read byte
+				case 0x14: {
 					if (width == 1) {
 						stack_push(sstack, mmemory[mpointer]);
 					} else if (width == 2) {
@@ -207,8 +273,9 @@ int main(int argc, char *argv[]) {
 						stack_push(sstack, mmemory[mpointer]);
 					}
 				} break;
-				// memory write stack
-				case 0x08: {
+
+				// memory write block
+				case 0x16: {
 					if (width == 1) {
 						mmemory[mpointer] = stack_pop(sstack);
 					} else if (width == 2) {
@@ -231,105 +298,54 @@ int main(int argc, char *argv[]) {
 					}
 				} break;
 
-				// math
-				case 0x0A: case 0x0B: {
-					// width is at least one
-					unsigned long a = nth_byte(0, registerA);
-					unsigned long b = nth_byte(0, registerB);
+				// byte width flags
+				case 0x1A: width = 1; break;
+				case 0x1B: width = 2; break;
+				case 0x1C: width = 4; break;
+				case 0x1D: width = 8; break;
+
+				// debugging log command
+				case 0x1E: {
+					for (int i = 0; stack_peek(sstack) != 0x00; i++)
+						putchar(stack_pop(sstack));
+
+					stack_pop(sstack);
+				} break;
+
+				// pop to a/b
+				case 0x20: case 0x22: {
+					unsigned long bytes = 0;
+					stack_pop_width(sstack, width, &bytes);
+
+					if (c == 0x20) registerA = bytes;
+					else if (c == 0x22) registerB = bytes;
+				} break;
+
+				// depop a/b
+				case 0x21: case 0x23: {
+					unsigned long reg = c == 0x21 ? registerA : registerB;
 
 					if (width == 1) {
-						stack_push(sstack, c == 0x0A ? (unsigned char)a + (unsigned char)b : (unsigned char)a - (unsigned char)b);
-						break;
-					}
-
-					// width is at least two
-					a = a | nth_byte(1, registerA) << 8;
-					b = b | nth_byte(1, registerB) << 8;
-
-					if (width == 2) {
-						unsigned short sum = c == 0x0A ? (unsigned short)a + (unsigned short)b : (unsigned short)a - (unsigned short)b;
-						stack_push(sstack, nth_byte(1, sum));
-						stack_push(sstack, nth_byte(0, sum));
-						break;
-					}
-
-					// width is at least four
-					a = a | nth_byte(2, registerA) << 16 | nth_byte(3, registerA) << 24;
-					b = b | nth_byte(2, registerB) << 16 | nth_byte(3, registerB) << 24;
-
-					if (width == 4) {
-						unsigned int sum = c == 0x0A ? (unsigned int)a + (unsigned int)b : (unsigned int)a - (unsigned int)b;
-						stack_push(sstack, nth_byte(3, sum));
-						stack_push(sstack, nth_byte(2, sum));
-						stack_push(sstack, nth_byte(1, sum));
-						stack_push(sstack, nth_byte(0, sum));
-						break;
-					}
-
-					// width is at least eight
-					a = a | nth_byte(4, registerA) << 32 | nth_byte(5, registerA) << 40 | nth_byte(6, registerA) << 48 | nth_byte(7, registerA) << 56;
-					b = b | nth_byte(4, registerB) << 32 | nth_byte(5, registerB) << 40 | nth_byte(6, registerB) << 48 | nth_byte(7, registerB) << 56;
-
-					if (width == 8) {
-						unsigned long sum = c == 0x0A ? (unsigned long)a + (unsigned long)b : (unsigned long)a - (unsigned long)b;
-						stack_push(sstack, nth_byte(7, sum));
-						stack_push(sstack, nth_byte(6, sum));
-						stack_push(sstack, nth_byte(5, sum));
-						stack_push(sstack, nth_byte(4, sum));
-						stack_push(sstack, nth_byte(3, sum));
-						stack_push(sstack, nth_byte(2, sum));
-						stack_push(sstack, nth_byte(1, sum));
-						stack_push(sstack, nth_byte(0, sum));
-						break;
+						stack_push(sstack, nth_byte(0, reg));
+					} else if (width == 2) {
+						stack_push(sstack, nth_byte(1, reg));
+						stack_push(sstack, nth_byte(0, reg));
+					} else if (width == 4) {
+						stack_push(sstack, nth_byte(3, reg));
+						stack_push(sstack, nth_byte(2, reg));
+						stack_push(sstack, nth_byte(1, reg));
+						stack_push(sstack, nth_byte(0, reg));
+					} else if (width == 8) {
+						stack_push(sstack, nth_byte(7, reg));
+						stack_push(sstack, nth_byte(6, reg));
+						stack_push(sstack, nth_byte(5, reg));
+						stack_push(sstack, nth_byte(4, reg));
+						stack_push(sstack, nth_byte(3, reg));
+						stack_push(sstack, nth_byte(2, reg));
+						stack_push(sstack, nth_byte(1, reg));
+						stack_push(sstack, nth_byte(0, reg));
 					}
 				} break;
-
-				// conditionals
-				case 0x0C: case 0x0D: case 0x0E: {
-					int condition = 0;
-					unsigned long newcounter;
-					stack_pop_width(sstack, width, &newcounter);
-
-					if (c == 0x0C) {
-						condition = registerA > registerB;
-					} else if (c == 0x0D) {
-						condition = registerA >= registerB;
-					} else if (c == 0x0E) {
-						condition = registerA == registerB;
-					}
-
-					if (condition == 0) {
-						counter = newcounter - 1;
-					}
-				} break;
-
-				// jump (to sub)
-				case 0x0F: case 0x10: {
-					if (c == 0x10)
-						stack_push(cstack, counter);
-
-					unsigned long newcounter;
-					stack_pop_width(sstack, width, &newcounter);
-					counter = newcounter - 1;
-				} break;
-
-				// exit sub
-				case 0x11: {
-					unsigned long newcounter;
-					stack_pop_width(cstack, width, &newcounter);
-					counter = newcounter;
-				} break;
-
-				// byte width flags
-				case 0x12: width = 1; break;
-				case 0x13: width = 2; break;
-				case 0x14: width = 4; break;
-				case 0x15: width = 8; break;
-
-				// exit
-				case 0x18: counter = size; break;
-				// pop
-				case 0x19: stack_pop(sstack); break;
 
 				default: {
 					err("fatal: invalid opcode");
