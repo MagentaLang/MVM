@@ -8,5 +8,6 @@ void err(char text[]);
 
 void strrev(char *str);
 unsigned long nth_byte(int n, unsigned long bytes);
+unsigned long maxul(unsigned long a, unsigned long b);
 
 #endif

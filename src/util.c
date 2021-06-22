@@ -29,3 +29,11 @@ void strrev(char *str) {
 unsigned long nth_byte(int n, unsigned long bytes) {
 	return (bytes >> (8 * n));
 }
+
+// returns bigger unsigned long
+unsigned long maxul(unsigned long a, unsigned long b) {
+	if (a > b)
+		return a;
+	else
+		return b;
+}

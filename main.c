@@ -45,8 +45,8 @@ int main(int argc, char *argv[]) {
 	unsigned long size = ftell(f);
 	fseek(f, 0, SEEK_SET);
 	// read program
-	unsigned long counter = 3; // program counter
-	unsigned char bytecode[size]; // bytecode
+	unsigned long counter = 4; // set to start after the file header
+	unsigned char bytecode[maxul(size, 4)]; // bytecode, at least 4 bytes long
 	size_t ret_code = fread(bytecode, sizeof(char), size, f);
 	fclose(f); // close file after reading
 	if (ret_code == size) {
@@ -74,7 +74,7 @@ int main(int argc, char *argv[]) {
 	int width = 1; // byte width
 
 	// verify file type
-	if (bytecode[0] != 'M' || bytecode[1] != 'V' || bytecode[2] != 'M') {
+	if (bytecode[0] != '\n' || bytecode[1] != 'M' || bytecode[2] != 'V' || bytecode[3] != 'M') {
 		err("fatal: file is not magenta bytecode\n");
 		exit(EXIT_FAILURE);
 	}
@@ -157,6 +157,78 @@ int main(int argc, char *argv[]) {
 						putchar(stack_pop(sstack));
 
 					stack_pop(sstack);
+				} break;
+
+				// memory set
+				case 0x05: mpointer = registerA; break;
+				// memory loc
+				case 0x06: {
+					if (width == 1) {
+						stack_push(sstack, nth_byte(0, mpointer));
+					} else if (width == 2) {
+						stack_push(sstack, nth_byte(1, mpointer));
+						stack_push(sstack, nth_byte(0, mpointer));
+					} else if (width == 4) {
+						stack_push(sstack, nth_byte(3, mpointer));
+						stack_push(sstack, nth_byte(2, mpointer));
+						stack_push(sstack, nth_byte(1, mpointer));
+						stack_push(sstack, nth_byte(0, mpointer));
+					} else if (width == 8) {
+						stack_push(sstack, nth_byte(7, mpointer));
+						stack_push(sstack, nth_byte(6, mpointer));
+						stack_push(sstack, nth_byte(5, mpointer));
+						stack_push(sstack, nth_byte(4, mpointer));
+						stack_push(sstack, nth_byte(3, mpointer));
+						stack_push(sstack, nth_byte(2, mpointer));
+						stack_push(sstack, nth_byte(1, mpointer));
+						stack_push(sstack, nth_byte(0, mpointer));
+					}
+				} break;
+				// memory read
+				case 0x07: {
+					if (width == 1) {
+						stack_push(sstack, mmemory[mpointer]);
+					} else if (width == 2) {
+						stack_push(sstack, mmemory[mpointer + 1]);
+						stack_push(sstack, mmemory[mpointer]);
+					} else if (width == 4) {
+						stack_push(sstack, mmemory[mpointer + 3]);
+						stack_push(sstack, mmemory[mpointer + 2]);
+						stack_push(sstack, mmemory[mpointer + 1]);
+						stack_push(sstack, mmemory[mpointer]);
+					} else if (width == 8) {
+						stack_push(sstack, mmemory[mpointer + 7]);
+						stack_push(sstack, mmemory[mpointer + 6]);
+						stack_push(sstack, mmemory[mpointer + 5]);
+						stack_push(sstack, mmemory[mpointer + 4]);
+						stack_push(sstack, mmemory[mpointer + 3]);
+						stack_push(sstack, mmemory[mpointer + 2]);
+						stack_push(sstack, mmemory[mpointer + 1]);
+						stack_push(sstack, mmemory[mpointer]);
+					}
+				} break;
+				// memory write stack
+				case 0x08: {
+					if (width == 1) {
+						mmemory[mpointer] = stack_pop(sstack);
+					} else if (width == 2) {
+						mmemory[mpointer + 1] = stack_pop(sstack);
+						mmemory[mpointer] = stack_pop(sstack);
+					} else if (width == 4) {
+						mmemory[mpointer + 3] = stack_pop(sstack);
+						mmemory[mpointer + 2] = stack_pop(sstack);
+						mmemory[mpointer + 1] = stack_pop(sstack);
+						mmemory[mpointer] = stack_pop(sstack);
+					} else if (width == 8) {
+						mmemory[mpointer + 7] = stack_pop(sstack);
+						mmemory[mpointer + 6] = stack_pop(sstack);
+						mmemory[mpointer + 5] = stack_pop(sstack);
+						mmemory[mpointer + 4] = stack_pop(sstack);
+						mmemory[mpointer + 3] = stack_pop(sstack);
+						mmemory[mpointer + 2] = stack_pop(sstack);
+						mmemory[mpointer + 1] = stack_pop(sstack);
+						mmemory[mpointer] = stack_pop(sstack);
+					}
 				} break;
 
 				// math

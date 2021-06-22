@@ -8,6 +8,26 @@ code is written assuming the following type sizes:
 (u)int   == 32 bits
 (u)long  == 64 bits
 
+# basic specs
+
+instruction set: 48 (- 8 noops = 40) instructions (0x00-2F)
+byte width: 8/16/32/64bit
+registers: 8 registers (A-H)
+register widths: up to 64 bit
+stack length: 2^16 bytes
+call stack limit: 2^16 bytes
+
+TODO: make stack/call stack pretty much infinite by not assigning 2^16 bytes at
+      once but extending the stacks as needed
+
+# bytecode header
+
+magenta bytecode starts with the following file header, bytecode without this
+header or a malformed version of it will not be executed.
+
+0x 0A 4D 56 4D
+   \n M  V  M
+
 # memory and io
 
 magenta bytecode is stack based. memory, to the program running inside the vm,
@@ -88,7 +108,8 @@ after the instruction, etc.
 by default, all instructions work with 1 byte (8 bits) at once, using flags you
 can set the memory width to 2 bytes (16 bit), 4 bytes (32 bit), 8 bytes (64 bit)
 , and revert to the default 1 byte/8 bit memory width. when a flag is set, it is
-kept until another flag is encountered.
+kept until another flag is encountered. if something is pushed/popped from stack
+it usually conforms to the set byte width.
 
 if the push instruction runs into 0xFF it will substitute it for a null byte.
 
@@ -96,44 +117,59 @@ add/subtract instructions will overflow if memory width is too small, you should
 consider using a memory width one above the width of the numbers you pushed to
 A and B if you would like to avoid integer overflows.
 
-instructions marked with ! are not currently implemented.
-
  0x | opcode     | notes
 ----|------------|--------------------------------------------------------------
  00 | push       | push values to stack until null byte is reached
  01 | push bytes | following program bytes will be pushed to stack
- 02 | pop to A   | pop byte(s) from stack to A register
- 03 | pop to B   | pop byte(s) from stack to B register
- 04 | convert #  | convert last memory width to ascii number string
+ 02 | destr. pop | destructive pop, remove from the stack without setting a reg.
+ 03 | convert #  | convert last memory width to ascii number string
+ 04 |            |
+ 05 |            |
+ 06 | add        | push answer of A + B to stack
+ 07 | subtract   | push answer of A - B to stack
 ----|------------|--------------------------------------------------------------
-!05 | pointr set | sets memory pointer location to A
-!06 | pointr loc | push memory pointer location to stack
-!07 | pointr get | push memory data to stack, pushes as many bytes as width
-!08 | pntr write | pop byte from stack and write it to mem address under pointer
-!09 | pntr write | write B to memory address under pointer
+ 08 | greater    | if A isn't greater than B then jump to s0
+ 09 | equal      | if A isn't equal to B then jump to s0
+ 0A |            |
+ 0B |            |
+ 0C | jump       | set program counter to s0
+ 0D | jmp to sub | set program counter to s0 and push old counter to call stack
+ 0E | exit       | exits the program
+ 0F | exit sub   | pop value from call stack and go to it
 ----|------------|--------------------------------------------------------------
- 0A | add        | push answer of A + B to stack
- 0B | subtract   | push answer of A - B to stack
+ 10 | pointr set | sets memory pointer location to byte(s) from stack
+ 11 |            |
+ 12 | pointr loc | push memory pointer location byte(s) to stack
+ 13 |            |
+ 14 | pointr get | push a byte width of memory data to stack
+ 15 |            |
+ 16 | write blck | pop byte(s) from stack and write block to pointer lcoations
+!17 | write str  | pop bytes from stack to pointer locations until 0x00
+!18 | write byte | pop byte(s) from stack and write byte(s) to pointer location
+!19 | write str  | pop bytes from stack to pointer location until 0x00
 ----|------------|--------------------------------------------------------------
- 0C | greater    | if A isn't greater than B then jump to s0
- 0D | greater/eq | if A isn't greater than or equal to B then jump to s0
- 0E | equal      | if A isn't equal to B then jump to s0
- 0F | jump       | set program counter to s0
- 10 | jmp to sub | set program counter to s0 and push old counter to call stack
- 11 | exit sub   | pop value from call stack and go to it
-----|------------|--------------------------------------------------------------
- 12 | 1byte flag | set memory width to 8 bits
- 13 | 2byte flag | set memory width to 16 bits
- 14 | 4byte flag | set memory width to 32 bits
- 15 | 8byte flag | set memory width to 64 bits
-----|------------|--------------------------------------------------------------
- 16 | depop A    | pushes the value in A to stack without clearing A
- 17 | depop B    | pushes the value in B to stack without clearing B
-----|------------|--------------------------------------------------------------
- 18 | exit       | exits the program
- 19 | destr. pop | destructive pop, remove from the stack without setting a reg.
-----|------------|--------------------------------------------------------------
+ 1A | 1byte flag | set memory width to 8 bits
+ 1B | 2byte flag | set memory width to 16 bits
+ 1C | 4byte flag | set memory width to 32 bits
+ 1D | 8byte flag | set memory width to 64 bits
  1E | debug      | logs contents of stack until null byte is reached
- 1F | no op      |
+ 1F | no op      | no operation
+----|------------|--------------------------------------------------------------
+ 20 | pop to A   | pop byte(s) from stack to A register
+ 21 | depop A    | pushes the value in A to stack without clearing A
+ 22 | pop to B   | pop byte(s) from stack to B register
+ 23 | depop B    | pushes the value in B to stack without clearing B
+!24 | pop to C   | pop byte(s) from stack to C register
+!25 | depop C    | pushes the value in C to stack without clearing C
+!26 | pop to D   | pop byte(s) from stack to D register
+!27 | depop D    | pushes the value in D to stack without clearing D
+!28 | pop to E   | pop byte(s) from stack to E register
+!29 | depop E    | pushes the value in E to stack without clearing E
+!2A | pop to F   | pop byte(s) from stack to F register
+!2B | depop F    | pushes the value in F to stack without clearing F
+!2C | pop to G   | pop byte(s) from stack to G register
+!2D | depop G    | pushes the value in G to stack without clearing G
+!2E | pop to H   | pop byte(s) from stack to H register
+!2F | depop H    | pushes the value in H to stack without clearing H
 ----|------------|--------------------------------------------------------------
  0x | opcode     | notes
